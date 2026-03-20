@@ -11,6 +11,7 @@ interface TerritoryProps {
   isTargetable: boolean;
   onClick: (territoryId: string) => void;
   onHover: (territoryId: string | null) => void;
+  continentColor?: string;
 }
 
 export default function Territory({
@@ -21,17 +22,18 @@ export default function Territory({
   isTargetable,
   onClick,
   onHover,
+  continentColor,
 }: TerritoryProps) {
-  const fillColor = owner?.color ?? "#374151";
-  const fillOpacity = Math.min(0.3 + (territory.troops / 30) * 0.5, 0.8);
+  const fillColor = owner?.color ?? continentColor ?? "#3a5a40";
+  const fillOpacity = owner ? Math.min(0.5 + (territory.troops / 30) * 0.4, 0.9) : 0.4;
 
-  let strokeColor = "#d4d4d8";
-  let strokeWidth = 1.5;
+  let strokeColor = "#1a2740";
+  let strokeWidth = 1;
   if (isSelected) {
-    strokeColor = "#d97706";
+    strokeColor = "#fbbf24";
     strokeWidth = 3;
   } else if (isTargetable) {
-    strokeColor = "#dc2626";
+    strokeColor = "#ef4444";
     strokeWidth = 2.5;
   }
 
@@ -48,29 +50,30 @@ export default function Territory({
         fillOpacity={fillOpacity}
         stroke={strokeColor}
         strokeWidth={strokeWidth}
-        className="transition-all duration-150"
+        strokeLinejoin="round"
+        className="transition-all duration-150 hover:brightness-125"
       />
       {/* Troop count */}
-      <circle cx={shape.cx} cy={shape.cy} r={14} fill="rgba(0,0,0,0.6)" />
+      <circle cx={shape.cx} cy={shape.cy} r={11} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth={0.5} />
       <text
         x={shape.cx}
         y={shape.cy + 1}
         textAnchor="middle"
         dominantBaseline="central"
         fill="white"
-        fontSize={11}
+        fontSize={9}
         fontWeight="bold"
         fontFamily="var(--font-geist-mono)"
       >
         {territory.troops}
       </text>
-      {/* Territory name (shown small above) */}
+      {/* Territory name */}
       <text
         x={shape.cx}
-        y={shape.cy - 20}
+        y={shape.cy - 16}
         textAnchor="middle"
-        fill="rgba(0,0,0,0.5)"
-        fontSize={8}
+        fill="rgba(255,255,255,0.7)"
+        fontSize={6}
         fontFamily="var(--font-geist-sans)"
       >
         {territory.name}
