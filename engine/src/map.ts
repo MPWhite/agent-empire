@@ -1,6 +1,6 @@
 import type { GameMap, Territory, Continent } from './types.js';
 
-// ── Raw Map Data ──
+// ── Raw Map Data (Classic Risk – 42 territories, 6 continents) ──
 
 interface TerritoryDef {
   id: string;
@@ -15,88 +15,167 @@ interface ContinentDef {
 }
 
 const CONTINENTS: ContinentDef[] = [
-  { id: 'northlands', name: 'Northlands', bonusTroops: 5 },
-  { id: 'midlands', name: 'Midlands', bonusTroops: 7 },
-  { id: 'desert', name: 'Desert Wastes', bonusTroops: 3 },
-  { id: 'islands', name: 'Iron Islands', bonusTroops: 2 },
-  { id: 'southlands', name: 'Southlands', bonusTroops: 6 },
+  { id: 'north_america', name: 'North America', bonusTroops: 5 },
+  { id: 'south_america', name: 'South America', bonusTroops: 2 },
+  { id: 'europe', name: 'Europe', bonusTroops: 5 },
+  { id: 'africa', name: 'Africa', bonusTroops: 3 },
+  { id: 'asia', name: 'Asia', bonusTroops: 7 },
+  { id: 'australia', name: 'Australia', bonusTroops: 2 },
 ];
 
 const TERRITORIES: TerritoryDef[] = [
-  // Northlands (6)
-  { id: 'n1', name: 'Frostheim', continentId: 'northlands' },
-  { id: 'n2', name: 'Glacial Pass', continentId: 'northlands' },
-  { id: 'n3', name: 'Ironpeak', continentId: 'northlands' },
-  { id: 'n4', name: 'Snowdrift', continentId: 'northlands' },
-  { id: 'n5', name: 'Tundra Reach', continentId: 'northlands' },
-  { id: 'n6', name: 'Wolfden', continentId: 'northlands' },
+  // North America (9)
+  { id: 'alaska', name: 'Alaska', continentId: 'north_america' },
+  { id: 'northwest', name: 'NW Territory', continentId: 'north_america' },
+  { id: 'greenland', name: 'Greenland', continentId: 'north_america' },
+  { id: 'alberta', name: 'Alberta', continentId: 'north_america' },
+  { id: 'ontario', name: 'Ontario', continentId: 'north_america' },
+  { id: 'quebec', name: 'Quebec', continentId: 'north_america' },
+  { id: 'western_us', name: 'Western US', continentId: 'north_america' },
+  { id: 'eastern_us', name: 'Eastern US', continentId: 'north_america' },
+  { id: 'central_america', name: 'C. America', continentId: 'north_america' },
 
-  // Midlands (8)
-  { id: 'm1', name: 'Kingsfield', continentId: 'midlands' },
-  { id: 'm2', name: 'Bridgewater', continentId: 'midlands' },
-  { id: 'm3', name: 'Oakshire', continentId: 'midlands' },
-  { id: 'm4', name: 'Stonehall', continentId: 'midlands' },
-  { id: 'm5', name: 'Riverbend', continentId: 'midlands' },
-  { id: 'm6', name: 'Westmarch', continentId: 'midlands' },
-  { id: 'm7', name: 'Eastwatch', continentId: 'midlands' },
-  { id: 'm8', name: 'Highcastle', continentId: 'midlands' },
+  // South America (4)
+  { id: 'venezuela', name: 'Venezuela', continentId: 'south_america' },
+  { id: 'brazil', name: 'Brazil', continentId: 'south_america' },
+  { id: 'peru', name: 'Peru', continentId: 'south_america' },
+  { id: 'argentina', name: 'Argentina', continentId: 'south_america' },
 
-  // Desert Wastes (5)
-  { id: 'd1', name: 'Sandspire', continentId: 'desert' },
-  { id: 'd2', name: 'Oasis', continentId: 'desert' },
-  { id: 'd3', name: 'Dusthaven', continentId: 'desert' },
-  { id: 'd4', name: 'Scorchplain', continentId: 'desert' },
-  { id: 'd5', name: 'Mirage', continentId: 'desert' },
+  // Europe (7)
+  { id: 'iceland', name: 'Iceland', continentId: 'europe' },
+  { id: 'great_britain', name: 'Gr. Britain', continentId: 'europe' },
+  { id: 'scandinavia', name: 'Scandinavia', continentId: 'europe' },
+  { id: 'north_europe', name: 'N. Europe', continentId: 'europe' },
+  { id: 'west_europe', name: 'W. Europe', continentId: 'europe' },
+  { id: 'south_europe', name: 'S. Europe', continentId: 'europe' },
+  { id: 'ukraine', name: 'Ukraine', continentId: 'europe' },
 
-  // Iron Islands (4)
-  { id: 'i1', name: 'Port Anvil', continentId: 'islands' },
-  { id: 'i2', name: 'Saltrock', continentId: 'islands' },
-  { id: 'i3', name: 'Tidecrest', continentId: 'islands' },
-  { id: 'i4', name: 'Stormbreak', continentId: 'islands' },
+  // Africa (6)
+  { id: 'north_africa', name: 'N. Africa', continentId: 'africa' },
+  { id: 'egypt', name: 'Egypt', continentId: 'africa' },
+  { id: 'east_africa', name: 'E. Africa', continentId: 'africa' },
+  { id: 'congo', name: 'Congo', continentId: 'africa' },
+  { id: 'south_africa', name: 'S. Africa', continentId: 'africa' },
+  { id: 'madagascar', name: 'Madagascar', continentId: 'africa' },
 
-  // Southlands (7)
-  { id: 's1', name: 'Sunvale', continentId: 'southlands' },
-  { id: 's2', name: 'Greenpeak', continentId: 'southlands' },
-  { id: 's3', name: 'Thornfield', continentId: 'southlands' },
-  { id: 's4', name: 'Goldmere', continentId: 'southlands' },
-  { id: 's5', name: 'Ashwood', continentId: 'southlands' },
-  { id: 's6', name: 'Coppervale', continentId: 'southlands' },
-  { id: 's7', name: 'Emerald Bay', continentId: 'southlands' },
+  // Asia (12)
+  { id: 'ural', name: 'Ural', continentId: 'asia' },
+  { id: 'siberia', name: 'Siberia', continentId: 'asia' },
+  { id: 'yakutsk', name: 'Yakutsk', continentId: 'asia' },
+  { id: 'irkutsk', name: 'Irkutsk', continentId: 'asia' },
+  { id: 'kamchatka', name: 'Kamchatka', continentId: 'asia' },
+  { id: 'afghanistan', name: 'Afghanistan', continentId: 'asia' },
+  { id: 'china', name: 'China', continentId: 'asia' },
+  { id: 'mongolia', name: 'Mongolia', continentId: 'asia' },
+  { id: 'japan', name: 'Japan', continentId: 'asia' },
+  { id: 'middle_east', name: 'Middle East', continentId: 'asia' },
+  { id: 'india', name: 'India', continentId: 'asia' },
+  { id: 'siam', name: 'Siam', continentId: 'asia' },
+
+  // Australia (4)
+  { id: 'indonesia', name: 'Indonesia', continentId: 'australia' },
+  { id: 'new_guinea', name: 'New Guinea', continentId: 'australia' },
+  { id: 'western_australia', name: 'W. Australia', continentId: 'australia' },
+  { id: 'eastern_australia', name: 'E. Australia', continentId: 'australia' },
 ];
 
-// Adjacency list — bidirectional edges
+// Adjacency list — bidirectional edges (classic Risk board)
 const EDGES: [string, string][] = [
-  // Northlands internal
-  ['n1', 'n2'], ['n1', 'n3'], ['n2', 'n4'], ['n2', 'n3'],
-  ['n3', 'n5'], ['n4', 'n5'], ['n4', 'n6'], ['n5', 'n6'],
+  // North America internal
+  ['alaska', 'northwest'],
+  ['alaska', 'alberta'],
+  ['northwest', 'alberta'],
+  ['northwest', 'ontario'],
+  ['northwest', 'greenland'],
+  ['alberta', 'ontario'],
+  ['alberta', 'western_us'],
+  ['ontario', 'quebec'],
+  ['ontario', 'eastern_us'],
+  ['ontario', 'western_us'],
+  ['ontario', 'greenland'],
+  ['quebec', 'eastern_us'],
+  ['quebec', 'greenland'],
+  ['western_us', 'eastern_us'],
+  ['western_us', 'central_america'],
+  ['eastern_us', 'central_america'],
 
-  // Midlands internal
-  ['m1', 'm2'], ['m1', 'm3'], ['m2', 'm4'], ['m2', 'm5'],
-  ['m3', 'm5'], ['m3', 'm6'], ['m4', 'm7'], ['m5', 'm7'],
-  ['m5', 'm6'], ['m6', 'm8'], ['m7', 'm8'],
+  // South America internal
+  ['venezuela', 'brazil'],
+  ['venezuela', 'peru'],
+  ['brazil', 'peru'],
+  ['brazil', 'argentina'],
+  ['peru', 'argentina'],
 
-  // Desert internal
-  ['d1', 'd2'], ['d1', 'd3'], ['d2', 'd3'], ['d2', 'd4'],
-  ['d3', 'd5'], ['d4', 'd5'],
+  // Europe internal
+  ['iceland', 'great_britain'],
+  ['iceland', 'scandinavia'],
+  ['great_britain', 'scandinavia'],
+  ['great_britain', 'north_europe'],
+  ['great_britain', 'west_europe'],
+  ['scandinavia', 'north_europe'],
+  ['scandinavia', 'ukraine'],
+  ['north_europe', 'west_europe'],
+  ['north_europe', 'south_europe'],
+  ['north_europe', 'ukraine'],
+  ['west_europe', 'south_europe'],
+  ['south_europe', 'ukraine'],
 
-  // Islands internal
-  ['i1', 'i2'], ['i1', 'i3'], ['i2', 'i4'], ['i3', 'i4'],
+  // Africa internal
+  ['north_africa', 'egypt'],
+  ['north_africa', 'east_africa'],
+  ['north_africa', 'congo'],
+  ['egypt', 'east_africa'],
+  ['east_africa', 'congo'],
+  ['east_africa', 'south_africa'],
+  ['east_africa', 'madagascar'],
+  ['congo', 'south_africa'],
+  ['south_africa', 'madagascar'],
 
-  // Southlands internal
-  ['s1', 's2'], ['s1', 's3'], ['s2', 's4'], ['s3', 's4'],
-  ['s3', 's5'], ['s4', 's6'], ['s5', 's6'], ['s5', 's7'],
-  ['s6', 's7'],
+  // Asia internal
+  ['ural', 'siberia'],
+  ['ural', 'afghanistan'],
+  ['ural', 'china'],
+  ['siberia', 'yakutsk'],
+  ['siberia', 'irkutsk'],
+  ['siberia', 'mongolia'],
+  ['siberia', 'china'],
+  ['yakutsk', 'irkutsk'],
+  ['yakutsk', 'kamchatka'],
+  ['irkutsk', 'kamchatka'],
+  ['irkutsk', 'mongolia'],
+  ['kamchatka', 'mongolia'],
+  ['kamchatka', 'japan'],
+  ['afghanistan', 'china'],
+  ['afghanistan', 'india'],
+  ['china', 'mongolia'],
+  ['china', 'india'],
+  ['china', 'siam'],
+  ['mongolia', 'japan'],
+  ['india', 'siam'],
+
+  // Australia internal
+  ['indonesia', 'new_guinea'],
+  ['indonesia', 'western_australia'],
+  ['new_guinea', 'western_australia'],
+  ['new_guinea', 'eastern_australia'],
+  ['western_australia', 'eastern_australia'],
 
   // Cross-continent bridges
-  ['n5', 'm1'],  // Northlands → Midlands
-  ['n6', 'm3'],  // Northlands → Midlands
-  ['m7', 'd1'],  // Midlands → Desert
-  ['m8', 'd3'],  // Midlands → Desert
-  ['m6', 's1'],  // Midlands → Southlands
-  ['d4', 's5'],  // Desert → Southlands
-  ['d5', 's7'],  // Desert → Southlands
-  ['i1', 'm2'],  // Islands → Midlands
-  ['i3', 's2'],  // Islands → Southlands
+  ['alaska', 'kamchatka'],           // NA ↔ Asia
+  ['greenland', 'iceland'],          // NA ↔ Europe
+  ['central_america', 'venezuela'],  // NA ↔ SA
+  ['brazil', 'north_africa'],        // SA ↔ Africa
+  ['west_europe', 'north_africa'],   // Europe ↔ Africa
+  ['south_europe', 'north_africa'],  // Europe ↔ Africa
+  ['south_europe', 'egypt'],         // Europe ↔ Africa
+  ['ukraine', 'ural'],               // Europe ↔ Asia
+  ['ukraine', 'afghanistan'],        // Europe ↔ Asia
+  ['ukraine', 'middle_east'],        // Europe ↔ Asia
+  ['south_europe', 'middle_east'],   // Europe ↔ Asia
+  ['egypt', 'middle_east'],          // Africa ↔ Asia
+  ['east_africa', 'middle_east'],    // Africa ↔ Asia
+  ['middle_east', 'india'],          // Asia internal (already in Asia)
+  ['siam', 'indonesia'],             // Asia ↔ Australia
 ];
 
 // ── Map Construction ──
