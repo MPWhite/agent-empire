@@ -107,8 +107,7 @@ export interface SerializedTurnResult {
 // Server messages
 export type ServerMessage =
   | { type: 'game_state'; state: SerializedGameState }
-  | { type: 'turn_result'; result: SerializedTurnResult; nextTurnEndsAt: number }
-  | { type: 'timer_tick'; secondsRemaining: number }
-  | { type: 'player_joined'; player: Player }
-  | { type: 'player_left'; playerId: string }
+  | { type: 'turn_result'; result: SerializedTurnResult }
+  | { type: 'actions_acknowledged'; playerId: string; count: number }
+  | { type: 'player_turn_ended'; playerId: string }
   | { type: 'error'; message: string };

@@ -44,7 +44,7 @@ export default function PlayerList({ gameState, currentPlayerId }: PlayerListPro
                 />
                 <span className={isMe ? "font-bold" : ""}>
                   {player.name}
-                  {isMe ? " (you)" : ""}
+                  {isMe ? " (active)" : ""}
                 </span>
               </div>
               <div className="flex gap-3 text-zinc-400 font-mono text-xs">

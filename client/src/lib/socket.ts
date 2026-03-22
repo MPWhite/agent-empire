@@ -4,9 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import type {
   ServerMessage,
   SerializedGameState,
-  SerializedTurnResult,
   PlayerAction,
-  Player,
   GameEvent,
 } from "./types";
 
@@ -15,26 +13,22 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001";
 export interface GameConnection {
   gameState: SerializedGameState | null;
   events: GameEvent[];
-  secondsRemaining: number;
   connected: boolean;
-  playerId: string | null;
-  isSpectator: boolean;
-  join: (playerId: string, name: string) => void;
-  watch: () => void;
-  submitActions: (actions: PlayerAction[]) => void;
-  startGame: () => void;
+  turnEndedPlayers: Set<string>;
+  submitActions: (playerId: string, actions: PlayerAction[]) => void;
+  endTurn: (playerId: string) => void;
+  newGame: () => void;
 }
 
 export function useGameSocket(): GameConnection {
   const wsRef = useRef<WebSocket | null>(null);
-  const playerIdRef = useRef<string | null>(null);
 
   const [connected, setConnected] = useState(false);
   const [gameState, setGameState] = useState<SerializedGameState | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
-  const [secondsRemaining, setSecondsRemaining] = useState(0);
-  const [playerId, setPlayerId] = useState<string | null>(null);
-  const [isSpectator, setIsSpectator] = useState(false);
+  const [turnEndedPlayers, setTurnEndedPlayers] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -50,24 +44,17 @@ export function useGameSocket(): GameConnection {
       switch (msg.type) {
         case "game_state":
           setGameState(msg.state);
+          setTurnEndedPlayers(new Set());
           break;
         case "turn_result":
           setGameState(msg.result.state);
           setEvents((prev) => [...prev, ...msg.result.events].slice(-200));
+          setTurnEndedPlayers(new Set());
           break;
-        case "timer_tick":
-          setSecondsRemaining(msg.secondsRemaining);
+        case "player_turn_ended":
+          setTurnEndedPlayers((prev) => new Set([...prev, msg.playerId]));
           break;
-        case "player_joined":
-          setGameState((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              players: { ...prev.players, [msg.player.id]: msg.player },
-            };
-          });
-          break;
-        case "player_left":
+        case "actions_acknowledged":
           break;
         case "error":
           console.error("Server error:", msg.message);
@@ -86,41 +73,32 @@ export function useGameSocket(): GameConnection {
     }
   }, []);
 
-  const join = useCallback(
-    (id: string, name: string) => {
-      playerIdRef.current = id;
-      setPlayerId(id);
-      send({ type: "join", playerId: id, name });
-    },
-    [send]
-  );
-
-  const watch = useCallback(() => {
-    setIsSpectator(true);
-    send({ type: "watch" });
-  }, [send]);
-
   const submitActions = useCallback(
-    (actions: PlayerAction[]) => {
-      send({ type: "submit_actions", playerId: playerIdRef.current, actions });
+    (playerId: string, actions: PlayerAction[]) => {
+      send({ type: "submit_actions", playerId, actions });
     },
     [send]
   );
 
-  const startGame = useCallback(() => {
-    send({ type: "start_game", playerId: playerIdRef.current });
+  const endTurn = useCallback(
+    (playerId: string) => {
+      send({ type: "end_turn", playerId });
+    },
+    [send]
+  );
+
+  const newGame = useCallback(() => {
+    setEvents([]);
+    send({ type: "new_game" });
   }, [send]);
 
   return {
     gameState,
     events,
-    secondsRemaining,
     connected,
-    playerId,
-    isSpectator,
-    join,
-    watch,
+    turnEndedPlayers,
     submitActions,
-    startGame,
+    endTurn,
+    newGame,
   };
 }

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { SerializedGameState } from "@/lib/types";
-import { TERRITORY_SHAPES, CONTINENT_COLORS, SEA_PATHS } from "@/lib/map-paths";
+import { TERRITORY_SHAPES, CONTINENT_COLORS } from "@/lib/map-paths";
 import Territory from "./Territory";
 
 interface GameMapProps {
@@ -83,20 +83,12 @@ export default function GameMap({
   return (
     <div className="relative w-full">
       <svg
-        viewBox="0 0 1024 792"
+        viewBox="0 0 2000 857"
         className="w-full h-auto"
         style={{ maxHeight: "calc(100vh - 200px)" }}
       >
         {/* Ocean background */}
-        <rect width="1024" height="792" fill="#1a2740" rx={8} />
-
-        {/* Sea/lake decorations */}
-        <g fill="#1a2740" opacity={0.8}>
-          <path d={SEA_PATHS.mediterranean} />
-          <path d={SEA_PATHS.deadSea} />
-          <path d={SEA_PATHS.blackSea} />
-          <path d={SEA_PATHS.greatLakes} />
-        </g>
+        <rect width="2000" height="857" fill="#1a2740" rx={8} />
 
         {/* Cross-continent connection lines */}
         {adjacencyLines.map((line, i) => (
@@ -113,10 +105,10 @@ export default function GameMap({
         ))}
 
         {/* Alaska-Kamchatka wrap-around indicator */}
-        <text x={10} y={85} fill="rgba(255,255,255,0.3)" fontSize={7} fontFamily="var(--font-geist-sans)">
+        <text x={20} y={170} fill="rgba(255,255,255,0.3)" fontSize={14} fontFamily="var(--font-geist-sans)">
           → Kamchatka
         </text>
-        <text x={950} y={55} fill="rgba(255,255,255,0.3)" fontSize={7} fontFamily="var(--font-geist-sans)" textAnchor="end">
+        <text x={1980} y={110} fill="rgba(255,255,255,0.3)" fontSize={14} fontFamily="var(--font-geist-sans)" textAnchor="end">
           Alaska ←
         </text>
 

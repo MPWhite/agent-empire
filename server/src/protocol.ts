@@ -1,12 +1,6 @@
-import type { GameState, PlayerAction, TurnResult, Player } from 'engine';
+import type { GameState, GamePhase, PlayerAction, TurnResult, Player, Territory, Continent } from 'engine';
 
 // ── Client → Server Messages ──
-
-export interface JoinMessage {
-  type: 'join';
-  playerId: string;
-  name: string;
-}
 
 export interface SubmitActionsMessage {
   type: 'submit_actions';
@@ -14,16 +8,16 @@ export interface SubmitActionsMessage {
   actions: PlayerAction[];
 }
 
-export interface StartGameMessage {
-  type: 'start_game';
+export interface EndTurnMessage {
+  type: 'end_turn';
   playerId: string;
 }
 
-export interface WatchMessage {
-  type: 'watch';
+export interface NewGameMessage {
+  type: 'new_game';
 }
 
-export type ClientMessage = JoinMessage | SubmitActionsMessage | StartGameMessage | WatchMessage;
+export type ClientMessage = SubmitActionsMessage | EndTurnMessage | NewGameMessage;
 
 // ── Server → Client Messages ──
 
@@ -35,21 +29,16 @@ export interface GameStateMessage {
 export interface TurnResultMessage {
   type: 'turn_result';
   result: SerializedTurnResult;
-  nextTurnEndsAt: number;
 }
 
-export interface TimerTickMessage {
-  type: 'timer_tick';
-  secondsRemaining: number;
+export interface ActionsAcknowledgedMessage {
+  type: 'actions_acknowledged';
+  playerId: string;
+  count: number;
 }
 
-export interface PlayerJoinedMessage {
-  type: 'player_joined';
-  player: Player;
-}
-
-export interface PlayerLeftMessage {
-  type: 'player_left';
+export interface PlayerTurnEndedMessage {
+  type: 'player_turn_ended';
   playerId: string;
 }
 
@@ -61,17 +50,16 @@ export interface ErrorMessage {
 export type ServerMessage =
   | GameStateMessage
   | TurnResultMessage
-  | TimerTickMessage
-  | PlayerJoinedMessage
-  | PlayerLeftMessage
+  | ActionsAcknowledgedMessage
+  | PlayerTurnEndedMessage
   | ErrorMessage;
 
 // ── Serialization helpers ──
 // Maps and Sets can't be JSON-serialized, so we convert them
 
 export interface SerializedGameMap {
-  territories: Record<string, any>;
-  continents: Record<string, any>;
+  territories: Record<string, Territory>;
+  continents: Record<string, Continent>;
   adjacency: Record<string, string[]>;
 }
 
@@ -88,12 +76,12 @@ export interface SerializedTurnResult {
 }
 
 export function serializeGameState(state: GameState): SerializedGameState {
-  const territories: Record<string, any> = {};
+  const territories: Record<string, Territory> = {};
   for (const [id, t] of state.map.territories) {
     territories[id] = t;
   }
 
-  const continents: Record<string, any> = {};
+  const continents: Record<string, Continent> = {};
   for (const [id, c] of state.map.continents) {
     continents[id] = c;
   }
@@ -113,6 +101,35 @@ export function serializeGameState(state: GameState): SerializedGameState {
     players,
     turnNumber: state.turnNumber,
     phase: state.phase,
+  };
+}
+
+export function deserializeGameState(data: SerializedGameState): GameState {
+  const territories = new Map<string, Territory>();
+  for (const [id, t] of Object.entries(data.map.territories)) {
+    territories.set(id, t);
+  }
+
+  const continents = new Map<string, Continent>();
+  for (const [id, c] of Object.entries(data.map.continents)) {
+    continents.set(id, c);
+  }
+
+  const adjacency = new Map<string, Set<string>>();
+  for (const [id, neighbors] of Object.entries(data.map.adjacency)) {
+    adjacency.set(id, new Set(neighbors));
+  }
+
+  const players = new Map<string, Player>();
+  for (const [id, p] of Object.entries(data.players)) {
+    players.set(id, p);
+  }
+
+  return {
+    map: { territories, continents, adjacency },
+    players,
+    turnNumber: data.turnNumber,
+    phase: data.phase as GamePhase,
   };
 }
 
