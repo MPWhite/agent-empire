@@ -18,7 +18,9 @@ export interface GameConnection {
   secondsRemaining: number;
   connected: boolean;
   playerId: string | null;
+  isSpectator: boolean;
   join: (playerId: string, name: string) => void;
+  watch: () => void;
   submitActions: (actions: PlayerAction[]) => void;
   startGame: () => void;
 }
@@ -32,6 +34,7 @@ export function useGameSocket(): GameConnection {
   const [events, setEvents] = useState<GameEvent[]>([]);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [isSpectator, setIsSpectator] = useState(false);
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -92,6 +95,11 @@ export function useGameSocket(): GameConnection {
     [send]
   );
 
+  const watch = useCallback(() => {
+    setIsSpectator(true);
+    send({ type: "watch" });
+  }, [send]);
+
   const submitActions = useCallback(
     (actions: PlayerAction[]) => {
       send({ type: "submit_actions", playerId: playerIdRef.current, actions });
@@ -109,7 +117,9 @@ export function useGameSocket(): GameConnection {
     secondsRemaining,
     connected,
     playerId,
+    isSpectator,
     join,
+    watch,
     submitActions,
     startGame,
   };
