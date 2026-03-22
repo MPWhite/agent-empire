@@ -54,14 +54,14 @@ export default function Territory({
         className="transition-all duration-150 hover:brightness-125"
       />
       {/* Troop count */}
-      <circle cx={shape.cx} cy={shape.cy} r={11} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth={0.5} />
+      <circle cx={shape.cx} cy={shape.cy} r={14} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth={0.5} />
       <text
         x={shape.cx}
         y={shape.cy + 1}
         textAnchor="middle"
         dominantBaseline="central"
         fill="white"
-        fontSize={9}
+        fontSize={12}
         fontWeight="bold"
         fontFamily="var(--font-geist-mono)"
       >
@@ -70,10 +70,10 @@ export default function Territory({
       {/* Territory name */}
       <text
         x={shape.cx}
-        y={shape.cy - 16}
+        y={shape.cy - 20}
         textAnchor="middle"
         fill="rgba(255,255,255,0.7)"
-        fontSize={6}
+        fontSize={9}
         fontFamily="var(--font-geist-sans)"
       >
         {territory.name}

@@ -1,198 +1,151 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useGameSocket } from "@/lib/socket";
 import type { PlayerAction } from "@/lib/types";
 import GameMap from "@/components/GameMap";
-import TurnTimer from "@/components/TurnTimer";
 import PlayerList from "@/components/PlayerList";
 import ActionQueue from "@/components/ActionQueue";
 import ActionPanel from "@/components/ActionPanel";
 import EventLog from "@/components/EventLog";
 
-function generateId() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
 export default function Home() {
   const {
     gameState,
     events,
-    secondsRemaining,
     connected,
-    playerId,
-    isSpectator,
-    join,
-    watch,
+    turnEndedPlayers,
     submitActions,
-    startGame,
+    endTurn,
+    newGame,
   } = useGameSocket();
 
-  const [nameInput, setNameInput] = useState("");
-  const [actions, setActions] = useState<PlayerAction[]>([]);
-  const [selectedTerritory, setSelectedTerritory] = useState<string | null>(null);
+  const [activePlayerId, setActivePlayerId] = useState("p1");
+  const [actions, setActions] = useState<Record<string, PlayerAction[]>>({
+    p1: [],
+    p2: [],
+  });
+  const [selectedTerritory, setSelectedTerritory] = useState<string | null>(
+    null
+  );
   const [targetTerritory, setTargetTerritory] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
 
-  // Auto-submit actions when turn ends (timer reaches 0)
-  useEffect(() => {
-    if (secondsRemaining === 0 && actions.length > 0 && !submitted) {
-      submitActions(actions);
-      setSubmitted(true);
-    }
-  }, [secondsRemaining, actions, submitted, submitActions]);
+  const currentActions = actions[activePlayerId] ?? [];
+  const hasEndedTurn = turnEndedPlayers.has(activePlayerId);
 
-  // Reset submitted flag and actions on new turn
+  // Reset actions when turn resolves (turnEndedPlayers clears)
+  const prevTurnRef = useRef(gameState?.turnNumber);
   useEffect(() => {
-    if (secondsRemaining > 50) {
-      setSubmitted(false);
-      setActions([]);
+    if (gameState && gameState.turnNumber !== prevTurnRef.current) {
+      prevTurnRef.current = gameState.turnNumber;
+      setActions({ p1: [], p2: [] });
+      setSelectedTerritory(null);
+      setTargetTerritory(null);
     }
-  }, [secondsRemaining]);
+  }, [gameState?.turnNumber, gameState]);
 
   // Compute targetable territories based on selection
   const targetableTerritories = useMemo(() => {
     const targets = new Set<string>();
-    if (!selectedTerritory || !gameState || !playerId) return targets;
+    if (!selectedTerritory || !gameState) return targets;
 
     const territory = gameState.map.territories[selectedTerritory];
-    if (territory?.ownerId !== playerId) return targets;
+    if (territory?.ownerId !== activePlayerId) return targets;
 
     const neighbors = gameState.map.adjacency[selectedTerritory] ?? [];
     for (const nid of neighbors) {
       const neighbor = gameState.map.territories[nid];
-      if (neighbor && neighbor.ownerId !== playerId && neighbor.ownerId !== null) {
+      if (neighbor && neighbor.ownerId !== activePlayerId && neighbor.ownerId !== null) {
         targets.add(nid);
       }
     }
     return targets;
-  }, [selectedTerritory, gameState, playerId]);
+  }, [selectedTerritory, gameState, activePlayerId]);
 
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {
-      if (!gameState || !playerId) return;
+      if (!gameState) return;
 
       const territory = gameState.map.territories[territoryId];
       if (!territory) return;
 
-      // If we have a selection and click a targetable territory, set it as target
       if (selectedTerritory && targetableTerritories.has(territoryId)) {
         setTargetTerritory(territoryId);
         return;
       }
 
-      // Otherwise, select the clicked territory
       setSelectedTerritory(territoryId);
       setTargetTerritory(null);
     },
-    [gameState, playerId, selectedTerritory, targetableTerritories]
+    [gameState, selectedTerritory, targetableTerritories]
   );
 
-  const handleAddAction = useCallback((action: PlayerAction) => {
-    setActions((prev) => [...prev, action]);
-  }, []);
+  const handleAddAction = useCallback(
+    (action: PlayerAction) => {
+      setActions((prev) => ({
+        ...prev,
+        [activePlayerId]: [...(prev[activePlayerId] ?? []), action],
+      }));
+    },
+    [activePlayerId]
+  );
 
-  const handleRemoveAction = useCallback((index: number) => {
-    setActions((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  const handleRemoveAction = useCallback(
+    (index: number) => {
+      setActions((prev) => ({
+        ...prev,
+        [activePlayerId]: (prev[activePlayerId] ?? []).filter(
+          (_, i) => i !== index
+        ),
+      }));
+    },
+    [activePlayerId]
+  );
 
   const handleClearSelection = useCallback(() => {
     setSelectedTerritory(null);
     setTargetTerritory(null);
   }, []);
 
-  const handleSubmitActions = useCallback(() => {
-    submitActions(actions);
-    setSubmitted(true);
+  const handleEndTurn = useCallback(() => {
+    submitActions(activePlayerId, currentActions);
+    endTurn(activePlayerId);
     setSelectedTerritory(null);
     setTargetTerritory(null);
-  }, [actions, submitActions]);
+
+    // Auto-switch to the other player
+    const otherPlayer = activePlayerId === "p1" ? "p2" : "p1";
+    if (!turnEndedPlayers.has(otherPlayer)) {
+      setActivePlayerId(otherPlayer);
+    }
+  }, [activePlayerId, currentActions, submitActions, endTurn, turnEndedPlayers]);
 
   const handleClearActions = useCallback(() => {
-    setActions([]);
-    setSubmitted(false);
+    setActions((prev) => ({
+      ...prev,
+      [activePlayerId]: [],
+    }));
+  }, [activePlayerId]);
+
+  const handleSwitchPlayer = useCallback((playerId: string) => {
+    setActivePlayerId(playerId);
+    setSelectedTerritory(null);
+    setTargetTerritory(null);
   }, []);
 
-  const handleJoin = useCallback(() => {
-    if (!nameInput.trim()) return;
-    join(generateId(), nameInput.trim());
-  }, [nameInput, join]);
-
-  // ── Pre-join screen ──
-  if (!playerId && !isSpectator) {
+  // ── Loading state ──
+  if (!gameState) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="bg-white border border-zinc-200 rounded-xl p-8 w-80 shadow-sm">
-          <h1 className="text-2xl font-bold mb-1">Risk MMO</h1>
-          <p className="text-zinc-500 text-sm mb-6">
-            {connected ? "Connected to server" : "Connecting..."}
-          </p>
-          <input
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-            placeholder="Your name"
-            className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:border-zinc-400"
-            autoFocus
-          />
-          <button
-            onClick={handleJoin}
-            disabled={!connected || !nameInput.trim()}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Join Game
-          </button>
-          <button
-            onClick={watch}
-            disabled={!connected}
-            className="w-full mt-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-300 text-zinc-600 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-          >
-            Watch Game
-          </button>
+        <div className="text-zinc-400 text-sm">
+          {connected ? "Loading game..." : "Connecting to server..."}
         </div>
       </div>
     );
   }
 
-  // ── Waiting for game to start ──
-  if (!gameState || gameState.phase === "waiting") {
-    const playerCount = gameState ? Object.keys(gameState.players).length : 0;
-
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="bg-white border border-zinc-200 rounded-xl p-8 w-96 text-center shadow-sm">
-          <h1 className="text-2xl font-bold mb-2">Risk MMO</h1>
-          <p className="text-zinc-500 mb-4">
-            {isSpectator ? "Spectating — " : ""}Waiting for players... ({playerCount} connected)
-          </p>
-          {gameState && (
-            <div className="mb-4 text-left">
-              {Object.values(gameState.players).map((p) => (
-                <div key={p.id} className="flex items-center gap-2 py-1">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: p.color }}
-                  />
-                  <span className="text-sm">{p.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {!isSpectator && (
-            <button
-              onClick={startGame}
-              disabled={playerCount < 2}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              {playerCount < 2 ? "Need 2+ players" : "Start Game"}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const players = Object.values(gameState.players);
 
   // ── Game UI ──
   return (
@@ -201,35 +154,69 @@ export default function Home() {
       <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-200">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold">Risk MMO</h1>
-          {isSpectator && (
-            <span className="text-xs font-medium text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded">
-              Spectating
-            </span>
-          )}
+          <span className="text-zinc-400 text-sm font-mono">
+            Turn {gameState.turnNumber}
+          </span>
         </div>
-        <TurnTimer
-          secondsRemaining={secondsRemaining}
-          turnNumber={gameState.turnNumber}
-        />
-        {!isSpectator && (
-          <div className="flex items-center gap-2">
+
+        {/* Player switcher */}
+        <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+          {players.map((player) => {
+            const isActive = player.id === activePlayerId;
+            const hasEnded = turnEndedPlayers.has(player.id);
+            return (
+              <button
+                key={player.id}
+                onClick={() => handleSwitchPlayer(player.id)}
+                disabled={hasEnded}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-white shadow-sm text-zinc-900"
+                    : hasEnded
+                      ? "text-zinc-300 cursor-not-allowed"
+                      : "text-zinc-500 hover:text-zinc-700"
+                }`}
+              >
+                <div
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: player.color }}
+                />
+                {player.name}
+                {hasEnded && (
+                  <span className="text-xs text-zinc-400">done</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {gameState.phase === "playing" && (
             <button
-              onClick={handleSubmitActions}
-              disabled={actions.length === 0 || submitted}
+              onClick={handleEndTurn}
+              disabled={hasEndedTurn}
               className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
             >
-              {submitted ? "Submitted" : `Submit (${actions.length})`}
+              {hasEndedTurn
+                ? "Waiting..."
+                : `End Turn (${currentActions.length})`}
             </button>
-            {actions.length > 0 && !submitted && (
-              <button
-                onClick={handleClearActions}
-                className="text-zinc-400 hover:text-zinc-600 text-sm px-2"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        )}
+          )}
+          {currentActions.length > 0 && !hasEndedTurn && (
+            <button
+              onClick={handleClearActions}
+              className="text-zinc-400 hover:text-zinc-600 text-sm px-2"
+            >
+              Clear
+            </button>
+          )}
+          <button
+            onClick={newGame}
+            className="text-zinc-400 hover:text-zinc-600 text-xs px-2 py-1 border border-zinc-200 rounded"
+          >
+            New Game
+          </button>
+        </div>
       </header>
 
       {/* Main content */}
@@ -248,19 +235,22 @@ export default function Home() {
 
         {/* Sidebar */}
         <aside className="w-72 border-l border-zinc-200 p-3 flex flex-col gap-3 overflow-y-auto">
-          <PlayerList gameState={gameState} currentPlayerId={playerId} />
-          {!isSpectator && (
+          <PlayerList
+            gameState={gameState}
+            currentPlayerId={activePlayerId}
+          />
+          {gameState.phase === "playing" && !hasEndedTurn && (
             <>
               <ActionPanel
                 gameState={gameState}
-                playerId={playerId!}
+                playerId={activePlayerId}
                 selectedTerritory={selectedTerritory}
                 targetTerritory={targetTerritory}
                 onAddAction={handleAddAction}
                 onClearSelection={handleClearSelection}
               />
               <ActionQueue
-                actions={actions}
+                actions={currentActions}
                 gameState={gameState}
                 onRemoveAction={handleRemoveAction}
               />
@@ -270,7 +260,15 @@ export default function Home() {
 
           {gameState.phase === "finished" && (
             <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 text-center">
-              <div className="text-amber-700 font-bold text-lg">Game Over!</div>
+              <div className="text-amber-700 font-bold text-lg">
+                Game Over!
+              </div>
+              <button
+                onClick={newGame}
+                className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
+              >
+                New Game
+              </button>
             </div>
           )}
         </aside>

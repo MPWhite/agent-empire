@@ -141,7 +141,7 @@ const TERRITORIES: TerritoryDef[] = [
   { id: 'nigeria', name: 'Nigeria', continentId: 'west_africa' },
   { id: 'togo', name: 'Togo', continentId: 'west_africa' },
   { id: 'ghana', name: 'Ghana', continentId: 'west_africa' },
-  { id: 'cte_divoire', name: 'Côte d'Ivoire', continentId: 'west_africa' },
+  { id: 'cte_divoire', name: "Côte d'Ivoire", continentId: 'west_africa' },
   { id: 'guinea', name: 'Guinea', continentId: 'west_africa' },
   { id: 'liberia', name: 'Liberia', continentId: 'west_africa' },
   { id: 'sierra_leone', name: 'Sierra Leone', continentId: 'west_africa' },
