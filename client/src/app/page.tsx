@@ -21,7 +21,9 @@ export default function Home() {
     secondsRemaining,
     connected,
     playerId,
+    isSpectator,
     join,
+    watch,
     submitActions,
     startGame,
   } = useGameSocket();
@@ -118,7 +120,7 @@ export default function Home() {
   }, [nameInput, join]);
 
   // ── Pre-join screen ──
-  if (!playerId) {
+  if (!playerId && !isSpectator) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="bg-white border border-zinc-200 rounded-xl p-8 w-80 shadow-sm">
@@ -142,6 +144,13 @@ export default function Home() {
           >
             Join Game
           </button>
+          <button
+            onClick={watch}
+            disabled={!connected}
+            className="w-full mt-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-300 text-zinc-600 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+          >
+            Watch Game
+          </button>
         </div>
       </div>
     );
@@ -156,7 +165,7 @@ export default function Home() {
         <div className="bg-white border border-zinc-200 rounded-xl p-8 w-96 text-center shadow-sm">
           <h1 className="text-2xl font-bold mb-2">Risk MMO</h1>
           <p className="text-zinc-500 mb-4">
-            Waiting for players... ({playerCount} connected)
+            {isSpectator ? "Spectating — " : ""}Waiting for players... ({playerCount} connected)
           </p>
           {gameState && (
             <div className="mb-4 text-left">
@@ -171,13 +180,15 @@ export default function Home() {
               ))}
             </div>
           )}
-          <button
-            onClick={startGame}
-            disabled={playerCount < 2}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            {playerCount < 2 ? "Need 2+ players" : "Start Game"}
-          </button>
+          {!isSpectator && (
+            <button
+              onClick={startGame}
+              disabled={playerCount < 2}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {playerCount < 2 ? "Need 2+ players" : "Start Game"}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -188,28 +199,37 @@ export default function Home() {
     <div className="flex-1 flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-200">
-        <h1 className="text-lg font-bold">Risk MMO</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold">Risk MMO</h1>
+          {isSpectator && (
+            <span className="text-xs font-medium text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded">
+              Spectating
+            </span>
+          )}
+        </div>
         <TurnTimer
           secondsRemaining={secondsRemaining}
           turnNumber={gameState.turnNumber}
         />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSubmitActions}
-            disabled={actions.length === 0 || submitted}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
-          >
-            {submitted ? "Submitted" : `Submit (${actions.length})`}
-          </button>
-          {actions.length > 0 && !submitted && (
+        {!isSpectator && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleClearActions}
-              className="text-zinc-400 hover:text-zinc-600 text-sm px-2"
+              onClick={handleSubmitActions}
+              disabled={actions.length === 0 || submitted}
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
             >
-              Clear
+              {submitted ? "Submitted" : `Submit (${actions.length})`}
             </button>
-          )}
-        </div>
+            {actions.length > 0 && !submitted && (
+              <button
+                onClick={handleClearActions}
+                className="text-zinc-400 hover:text-zinc-600 text-sm px-2"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Main content */}
@@ -229,19 +249,23 @@ export default function Home() {
         {/* Sidebar */}
         <aside className="w-72 border-l border-zinc-200 p-3 flex flex-col gap-3 overflow-y-auto">
           <PlayerList gameState={gameState} currentPlayerId={playerId} />
-          <ActionPanel
-            gameState={gameState}
-            playerId={playerId}
-            selectedTerritory={selectedTerritory}
-            targetTerritory={targetTerritory}
-            onAddAction={handleAddAction}
-            onClearSelection={handleClearSelection}
-          />
-          <ActionQueue
-            actions={actions}
-            gameState={gameState}
-            onRemoveAction={handleRemoveAction}
-          />
+          {!isSpectator && (
+            <>
+              <ActionPanel
+                gameState={gameState}
+                playerId={playerId!}
+                selectedTerritory={selectedTerritory}
+                targetTerritory={targetTerritory}
+                onAddAction={handleAddAction}
+                onClearSelection={handleClearSelection}
+              />
+              <ActionQueue
+                actions={actions}
+                gameState={gameState}
+                onRemoveAction={handleRemoveAction}
+              />
+            </>
+          )}
           <EventLog events={events} gameState={gameState} />
 
           {gameState.phase === "finished" && (

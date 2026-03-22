@@ -19,7 +19,11 @@ export interface StartGameMessage {
   playerId: string;
 }
 
-export type ClientMessage = JoinMessage | SubmitActionsMessage | StartGameMessage;
+export interface WatchMessage {
+  type: 'watch';
+}
+
+export type ClientMessage = JoinMessage | SubmitActionsMessage | StartGameMessage | WatchMessage;
 
 // ── Server → Client Messages ──
 

@@ -24,6 +24,7 @@ interface ConnectedPlayer {
 export class GameRoom {
   private state: GameState | null = null;
   private connections = new Map<string, ConnectedPlayer>();
+  private spectators = new Set<WebSocket>();
   private pendingActions = new Map<string, PlayerAction[]>();
   private timer: TurnTimer;
   private turnDurationSeconds: number;
@@ -48,6 +49,12 @@ export class GameRoom {
     });
 
     ws.on('close', () => {
+      // Remove spectator if applicable
+      if (this.spectators.delete(ws)) {
+        console.log('Spectator disconnected');
+        return;
+      }
+
       // Find and remove disconnected player
       for (const [playerId, conn] of this.connections) {
         if (conn.ws === ws) {
@@ -70,6 +77,9 @@ export class GameRoom {
         break;
       case 'start_game':
         this.handleStartGame(msg.playerId);
+        break;
+      case 'watch':
+        this.handleWatch(ws);
         break;
     }
   }
@@ -138,6 +148,14 @@ export class GameRoom {
     }
 
     this.startGame();
+  }
+
+  private handleWatch(ws: WebSocket): void {
+    this.spectators.add(ws);
+    if (this.state) {
+      this.send(ws, { type: 'game_state', state: serializeGameState(this.state) });
+    }
+    console.log(`Spectator connected. ${this.spectators.size} spectators.`);
   }
 
   private rebuildGameState(): void {
@@ -210,6 +228,11 @@ export class GameRoom {
     for (const conn of this.connections.values()) {
       if (conn.ws.readyState === WebSocket.OPEN) {
         conn.ws.send(data);
+      }
+    }
+    for (const ws of this.spectators) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
       }
     }
   }
