@@ -24,7 +24,8 @@ export default function GameMap({
   hoveredTerritory,
 }: GameMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { viewBox, zoomLevel, wasPanning, resetZoom, handlers } = useMapZoom(svgRef);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { viewBox, zoomLevel, wasPanning, resetZoom, handlers } = useMapZoom(svgRef, containerRef);
 
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {
@@ -93,19 +94,23 @@ export default function GameMap({
   }, [hoveredTerritory, gameState]);
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      ref={containerRef}
+      className="absolute inset-0 overflow-hidden"
+      style={{ backgroundColor: "#0c1929" }}
+    >
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-        className="w-full h-full select-none"
+        className="absolute inset-0 w-full h-full select-none"
         style={{
-          cursor: zoomLevel > 1 ? "grab" : "default",
+          cursor: "grab",
         }}
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="none"
         {...handlers}
       >
-        {/* Ocean background */}
-        <rect width="2000" height="857" fill="#0c1929" />
+        {/* Ocean background — extra padding for slice overflow */}
+        <rect x="-500" y="-500" width="3000" height="1857" fill="#0c1929" />
 
         {/* Cross-continent connection lines */}
         {adjacencyLines.map((line, i) => (
@@ -164,26 +169,25 @@ export default function GameMap({
       {zoomLevel > 1.05 && (
         <button
           onClick={resetZoom}
-          className="absolute top-2 left-2 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded border border-zinc-600 backdrop-blur-sm transition-colors"
+          className="absolute top-2 left-2 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 text-[10px] font-mono px-2 py-1 border border-zinc-800 transition-colors"
         >
-          Reset Zoom
+          RESET ZOOM
         </button>
       )}
 
       {/* Hover tooltip */}
       {tooltip && (
-        <div className="absolute top-2 right-2 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm pointer-events-none shadow-lg">
-          <div className="font-bold text-white">{tooltip.territory.name}</div>
-          <div className="text-zinc-400">
-            Owner:{" "}
-            <span style={{ color: tooltip.owner?.color ?? "#666" }}>
+        <div className="absolute top-2 right-2 bg-zinc-950 border border-zinc-800 px-3 py-2 pointer-events-none">
+          <div className="font-mono font-bold text-xs text-zinc-200">{tooltip.territory.name}</div>
+          <div className="text-zinc-500 text-[11px] font-mono">
+            <span style={{ color: tooltip.owner?.color ?? "#555" }}>
               {tooltip.owner?.name ?? "Unowned"}
             </span>
           </div>
-          <div className="text-zinc-400">Troops: {tooltip.territory.troops}</div>
+          <div className="text-zinc-500 text-[11px] font-mono">{tooltip.territory.troops} troops</div>
           {tooltip.continent && (
-            <div className="text-zinc-500 text-xs">
-              {tooltip.continent.name} (+{tooltip.continent.bonusTroops} bonus)
+            <div className="text-zinc-700 text-[10px] font-mono">
+              {tooltip.continent.name} +{tooltip.continent.bonusTroops}
             </div>
           )}
         </div>
