@@ -7,20 +7,26 @@ import type { AttackAction, ReinforceAction, GameState } from '../types.js';
 
 function setupGame(): GameState {
   const state = createGame([
-    { id: 'p1', name: 'Alice' },
-    { id: 'p2', name: 'Bob' },
+    { id: 'p1', name: 'Player 1' },
+    { id: 'p2', name: 'Player 2' },
+    { id: 'p3', name: 'Player 3' },
+    { id: 'p4', name: 'Player 4' },
+    { id: 'p5', name: 'Player 5' },
+    { id: 'p6', name: 'Player 6' },
+    { id: 'p7', name: 'Player 7' },
+    { id: 'p8', name: 'Player 8' },
   ]);
-  return assignTerritories(state, 42);
+  return assignTerritories(state);
 }
 
-function findAttackPair(state: GameState, attackerId: string, defenderId: string) {
+function findAttackPair(state: GameState, attackerId: string) {
   const attackerTerritories = getPlayerTerritories(state.map, attackerId);
-  const defenderTerritories = getPlayerTerritories(state.map, defenderId);
 
   for (const t1 of attackerTerritories) {
-    for (const t2 of defenderTerritories) {
-      if (areAdjacent(state.map, t1.id, t2.id)) {
-        return { from: t1.id, to: t2.id };
+    for (const neighborId of state.map.adjacency.get(t1.id) ?? []) {
+      const neighbor = state.map.territories.get(neighborId)!;
+      if (neighbor.ownerId !== attackerId && neighbor.ownerId !== null) {
+        return { from: t1.id, to: neighborId, defenderId: neighbor.ownerId };
       }
     }
   }
@@ -50,7 +56,7 @@ describe('resolveTurn', () => {
 
   it('resolves a valid attack', () => {
     const state = setupGame();
-    const { from, to } = findAttackPair(state, 'p1', 'p2');
+    const { from, to } = findAttackPair(state, 'p1');
 
     // Give attacker more troops for a meaningful attack
     state.map.territories.get(from)!.troops = 10;
@@ -127,7 +133,7 @@ describe('resolveTurn', () => {
 
   it('sequential attacks — second sees post-first state', () => {
     const state = setupGame();
-    const { from, to } = findAttackPair(state, 'p1', 'p2');
+    const { from, to } = findAttackPair(state, 'p1');
 
     // Give attacker a lot of troops
     state.map.territories.get(from)!.troops = 20;
@@ -161,7 +167,7 @@ describe('resolveTurn', () => {
 
   it('handles conquest and troop movement', () => {
     const state = setupGame();
-    const { from, to } = findAttackPair(state, 'p1', 'p2');
+    const { from, to } = findAttackPair(state, 'p1');
 
     state.map.territories.get(from)!.troops = 10;
     state.map.territories.get(to)!.troops = 1;
