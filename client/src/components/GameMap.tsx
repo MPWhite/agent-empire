@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { SerializedGameState } from "@/lib/types";
 import { TERRITORY_SHAPES, CONTINENT_COLORS } from "@/lib/map-paths";
+import { useMapZoom } from "@/lib/useMapZoom";
 import Territory from "./Territory";
 
 interface GameMapProps {
@@ -22,6 +23,17 @@ export default function GameMap({
   onTerritoryHover,
   hoveredTerritory,
 }: GameMapProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const { viewBox, zoomLevel, wasPanning, resetZoom, handlers } = useMapZoom(svgRef);
+
+  const handleTerritoryClick = useCallback(
+    (territoryId: string) => {
+      if (wasPanning.current) return;
+      onTerritoryClick(territoryId);
+    },
+    [onTerritoryClick, wasPanning]
+  );
+
   // Draw adjacency lines for cross-continent connections
   const adjacencyLines = useMemo(() => {
     const lines: { x1: number; y1: number; x2: number; y2: number; dashed: boolean }[] = [];
@@ -83,9 +95,14 @@ export default function GameMap({
   return (
     <div className="relative w-full">
       <svg
-        viewBox="0 0 2000 857"
-        className="w-full h-auto"
-        style={{ maxHeight: "calc(100vh - 200px)" }}
+        ref={svgRef}
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+        className="w-full h-auto select-none"
+        style={{
+          maxHeight: "calc(100vh - 200px)",
+          cursor: zoomLevel > 1 ? "grab" : "default",
+        }}
+        {...handlers}
       >
         {/* Ocean background */}
         <rect width="2000" height="857" fill="#1a2740" rx={8} />
@@ -134,13 +151,24 @@ export default function GameMap({
               owner={owner}
               isSelected={selectedTerritory === shape.id}
               isTargetable={targetableTerritories.has(shape.id)}
-              onClick={onTerritoryClick}
+              onClick={handleTerritoryClick}
               onHover={onTerritoryHover}
               continentColor={continentColor}
+              viewBox={viewBox}
             />
           );
         })}
       </svg>
+
+      {/* Reset zoom button */}
+      {zoomLevel > 1.05 && (
+        <button
+          onClick={resetZoom}
+          className="absolute top-2 left-2 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded border border-zinc-600 backdrop-blur-sm transition-colors"
+        >
+          Reset Zoom
+        </button>
+      )}
 
       {/* Hover tooltip */}
       {tooltip && (
