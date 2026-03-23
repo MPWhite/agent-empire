@@ -9,28 +9,81 @@ export interface ViewBox {
   h: number;
 }
 
-const INITIAL_W = 2000;
-const INITIAL_H = 857;
+// The SVG world dimensions (all territory paths live within this space)
+const WORLD_W = 2000;
+const WORLD_H = 857;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
-const PAN_THRESHOLD = 3; // px screen distance to distinguish click from pan
+const PAN_THRESHOLD = 3;
 
-export function useMapZoom(svgRef: React.RefObject<SVGSVGElement | null>) {
-  const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: INITIAL_W, h: INITIAL_H });
+function computeFitViewBox(containerW: number, containerH: number): ViewBox {
+  if (containerW === 0 || containerH === 0) return { x: 0, y: 0, w: WORLD_W, h: WORLD_H };
+
+  const containerAspect = containerW / containerH;
+  const worldAspect = WORLD_W / WORLD_H;
+
+  let w: number, h: number;
+  if (containerAspect > worldAspect) {
+    // Container is wider — match width, extend height
+    w = WORLD_W;
+    h = WORLD_W / containerAspect;
+  } else {
+    // Container is taller — match height, extend width
+    h = WORLD_H;
+    w = WORLD_H * containerAspect;
+  }
+
+  // Center on the world
+  const x = (WORLD_W - w) / 2;
+  const y = (WORLD_H - h) / 2;
+  return { x, y, w, h };
+}
+
+export function useMapZoom(
+  svgRef: React.RefObject<SVGSVGElement | null>,
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
+  const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: WORLD_W, h: WORLD_H });
+  const baseViewBox = useRef<ViewBox>({ x: 0, y: 0, w: WORLD_W, h: WORLD_H });
   const isPanning = useRef(false);
-  const panStart = useRef({ x: 0, y: 0 }); // SVG coords at drag start
-  const panStartScreen = useRef({ x: 0, y: 0 }); // screen coords at drag start
+  const panStart = useRef({ x: 0, y: 0 });
+  const panStartScreen = useRef({ x: 0, y: 0 });
   const wasPanning = useRef(false);
   const viewBoxRef = useRef(viewBox);
   viewBoxRef.current = viewBox;
 
-  const zoomLevel = INITIAL_W / viewBox.w;
+  // Measure container and set the base (zoom=1) viewBox
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const update = () => {
+      const rect = container.getBoundingClientRect();
+      const vb = computeFitViewBox(rect.width, rect.height);
+      baseViewBox.current = vb;
+      setViewBox(vb);
+    };
+
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    update();
+    return () => ro.disconnect();
+  }, [containerRef]);
+
+  const zoomLevel = baseViewBox.current.w / viewBox.w;
 
   function clampViewBox(vb: ViewBox): ViewBox {
-    const w = Math.max(INITIAL_W / MAX_ZOOM, Math.min(INITIAL_W / MIN_ZOOM, vb.w));
-    const h = w * (INITIAL_H / INITIAL_W);
-    const x = Math.max(0, Math.min(INITIAL_W - w, vb.x));
-    const y = Math.max(0, Math.min(INITIAL_H - h, vb.y));
+    const base = baseViewBox.current;
+    const aspect = base.w / base.h;
+    const w = Math.max(base.w / MAX_ZOOM, Math.min(base.w, vb.w));
+    const h = w / aspect;
+    // Allow panning across extended world + ocean margins
+    const minX = Math.min(base.x, 0);
+    const minY = Math.min(base.y, 0);
+    const maxX = Math.max(WORLD_W - w, base.x);
+    const maxY = Math.max(WORLD_H - h, base.y);
+    const x = Math.max(minX, Math.min(maxX, vb.x));
+    const y = Math.max(minY, Math.min(maxY, vb.y));
     return { x, y, w, h };
   }
 
@@ -46,7 +99,7 @@ export function useMapZoom(svgRef: React.RefObject<SVGSVGElement | null>) {
     return { x: svgPt.x, y: svgPt.y };
   }
 
-  // Wheel zoom — must use native listener with { passive: false }
+  // Wheel zoom
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -57,16 +110,15 @@ export function useMapZoom(svgRef: React.RefObject<SVGSVGElement | null>) {
       if (!mouse) return;
 
       const vb = viewBoxRef.current;
-      const factor = e.deltaY < 0 ? 0.9 : 1.1; // scroll up = zoom in
+      const base = baseViewBox.current;
+      const factor = e.deltaY < 0 ? 0.9 : 1.1;
+      const aspect = base.w / base.h;
 
-      // Clamp width/height BEFORE computing position to avoid drift at zoom limits
-      const newW = Math.max(INITIAL_W / MAX_ZOOM, Math.min(INITIAL_W / MIN_ZOOM, vb.w * factor));
-      const newH = newW * (INITIAL_H / INITIAL_W);
+      const newW = Math.max(base.w / MAX_ZOOM, Math.min(base.w, vb.w * factor));
+      const newH = newW / aspect;
 
-      // If size didn't change (at zoom limit), skip
       if (newW === vb.w) return;
 
-      // Zoom toward cursor
       const newX = mouse.x - (mouse.x - vb.x) * (newW / vb.w);
       const newY = mouse.y - (mouse.y - vb.y) * (newH / vb.h);
 
@@ -78,7 +130,7 @@ export function useMapZoom(svgRef: React.RefObject<SVGSVGElement | null>) {
   }, [svgRef]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return; // left button only
+    if (e.button !== 0) return;
     isPanning.current = true;
     wasPanning.current = false;
     panStartScreen.current = { x: e.clientX, y: e.clientY };
@@ -116,7 +168,7 @@ export function useMapZoom(svgRef: React.RefObject<SVGSVGElement | null>) {
   }, []);
 
   const resetZoom = useCallback(() => {
-    setViewBox({ x: 0, y: 0, w: INITIAL_W, h: INITIAL_H });
+    setViewBox(baseViewBox.current);
   }, []);
 
   return {
