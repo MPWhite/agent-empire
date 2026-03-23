@@ -21,11 +21,11 @@ export default function PlayerList({ gameState, currentPlayerId }: PlayerListPro
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-3">
-      <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+    <div className="p-3">
+      <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
         Players
       </h3>
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {players.map((player) => {
           const s = stats.get(player.id) ?? { territories: 0, troops: 0 };
           const isMe = player.id === currentPlayerId;
@@ -33,23 +33,28 @@ export default function PlayerList({ gameState, currentPlayerId }: PlayerListPro
           return (
             <div
               key={player.id}
-              className={`flex items-center justify-between text-sm px-2 py-1 rounded ${
-                isMe ? "bg-zinc-100" : ""
-              } ${!player.isAlive ? "opacity-40" : ""}`}
+              className={`flex items-center justify-between text-xs px-2 py-1.5 ${
+                isMe ? "bg-zinc-900 border border-zinc-800" : ""
+              } ${!player.isAlive ? "opacity-30" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-2 h-2"
                   style={{ backgroundColor: player.color }}
                 />
-                <span className={isMe ? "font-bold" : ""}>
+                <span className={`font-mono ${isMe ? "text-zinc-200" : "text-zinc-400"}`}>
                   {player.name}
-                  {isMe ? " (active)" : ""}
+                  {isMe ? " (YOU)" : ""}
                 </span>
+                {player.name.startsWith("AI ") && (
+                  <span className="text-[9px] text-zinc-600 bg-zinc-900 border border-zinc-800 px-1 font-mono">
+                    AI
+                  </span>
+                )}
               </div>
-              <div className="flex gap-3 text-zinc-400 font-mono text-xs">
-                <span>{s.territories} terr</span>
-                <span>{s.troops} troops</span>
+              <div className="flex gap-3 text-zinc-600 font-mono text-[10px]">
+                <span>{s.territories}T</span>
+                <span>{s.troops}U</span>
               </div>
             </div>
           );

@@ -61,12 +61,12 @@ export default function ActionPanel({
 
   if (!selectedTerritory) {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg p-3">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+      <div className="p-3">
+        <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
           Actions
         </h3>
-        <p className="text-zinc-500 text-sm">
-          Select one of your territories to reinforce or attack from
+        <p className="text-zinc-600 text-xs font-mono">
+          SELECT A TERRITORY
         </p>
       </div>
     );
@@ -74,52 +74,52 @@ export default function ActionPanel({
 
   if (!isOwnTerritory) {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg p-3">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+      <div className="p-3">
+        <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
           Actions
         </h3>
-        <p className="text-zinc-500 text-sm">
-          You don&apos;t own {source?.name}. Select one of your territories.
+        <p className="text-zinc-600 text-xs font-mono">
+          NOT YOUR TERRITORY
         </p>
         <button
           onClick={onClearSelection}
-          className="mt-2 text-xs text-zinc-400 hover:text-zinc-600"
+          className="mt-2 text-[10px] text-zinc-600 hover:text-zinc-400 font-mono"
         >
-          Clear selection
+          [CLEAR]
         </button>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-3">
-      <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+    <div className="p-3">
+      <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
         {isAttack ? "Attack" : targetTerritory ? "Select Target" : "Reinforce / Attack"}
       </h3>
 
-      <div className="text-sm mb-2">
+      <div className="text-xs font-mono mb-2">
         <span style={{ color: gameState.players[playerId]?.color }}>
           {source?.name}
         </span>
         {target && (
           <>
-            <span className="text-zinc-400 mx-1">→</span>
-            <span className="text-red-600">{target.name}</span>
+            <span className="text-zinc-600 mx-1">&rarr;</span>
+            <span className="text-red-500">{target.name}</span>
           </>
         )}
       </div>
 
       <div className="flex items-center gap-2 mb-3">
-        <label className="text-xs text-zinc-400">Troops:</label>
+        <label className="text-[10px] text-zinc-600 font-mono">TROOPS</label>
         <input
           type="range"
           min={1}
           max={Math.max(1, isAttack ? maxTroops : 10)}
           value={troops}
           onChange={(e) => setTroops(parseInt(e.target.value))}
-          className="flex-1 accent-emerald-500"
+          className="flex-1 accent-emerald-500 h-1"
         />
-        <span className="font-mono text-sm w-8 text-right">{troops}</span>
+        <span className="font-mono text-xs text-zinc-300 w-6 text-right">{troops}</span>
       </div>
 
       <div className="flex gap-2">
@@ -127,28 +127,28 @@ export default function ActionPanel({
           <button
             onClick={handleSubmit}
             disabled={maxTroops < 1}
-            className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors"
+            className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-[11px] font-mono font-medium py-1.5 px-3 transition-colors"
           >
-            Attack ({troops} troops)
+            ATTACK ({troops})
           </button>
         ) : !targetTerritory ? (
           <>
             <button
               onClick={handleSubmit}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-medium py-1.5 px-3 transition-colors"
             >
-              Reinforce (+{troops})
+              REINFORCE (+{troops})
             </button>
-            <div className="text-xs text-zinc-400 self-center">
-              or click enemy neighbor to attack
+            <div className="text-[10px] text-zinc-600 self-center font-mono">
+              OR CLICK ENEMY
             </div>
           </>
         ) : null}
         <button
           onClick={onClearSelection}
-          className="text-xs text-zinc-400 hover:text-zinc-600 px-2"
+          className="text-[10px] text-zinc-600 hover:text-zinc-400 px-2 font-mono"
         >
-          Cancel
+          [X]
         </button>
       </div>
     </div>

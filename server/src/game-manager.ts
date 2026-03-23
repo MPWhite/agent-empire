@@ -6,6 +6,7 @@ import {
   type GameState,
   type PlayerAction,
 } from 'engine';
+import { generateAIActions } from './ai/index.js';
 import { saveGame, loadGame } from './persistence.js';
 import {
   serializeGameState,
@@ -15,15 +16,18 @@ import {
 } from './protocol.js';
 
 const PLAYERS = [
-  { id: 'p1', name: 'Player 1' },
-  { id: 'p2', name: 'Player 2' },
-  { id: 'p3', name: 'Player 3' },
-  { id: 'p4', name: 'Player 4' },
-  { id: 'p5', name: 'Player 5' },
-  { id: 'p6', name: 'Player 6' },
-  { id: 'p7', name: 'Player 7' },
-  { id: 'p8', name: 'Player 8' },
+  { id: 'p1', name: 'You' },
+  { id: 'p2', name: 'AI Magnus' },
+  { id: 'p3', name: 'AI Petra' },
+  { id: 'p4', name: 'AI Khan' },
+  { id: 'p5', name: 'AI Sato' },
+  { id: 'p6', name: 'AI Cruz' },
+  { id: 'p7', name: 'AI Odin' },
+  { id: 'p8', name: 'AI Zara' },
 ];
+
+const HUMAN_PLAYER_ID = 'p1';
+const AI_PLAYER_IDS = new Set(['p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8']);
 
 export class GameManager {
   private state: GameState;
@@ -84,6 +88,7 @@ export class GameManager {
   }
 
   private handleSubmitActions(playerId: string, actions: PlayerAction[]): void {
+    if (AI_PLAYER_IDS.has(playerId)) return;
     if (this.state.phase !== 'playing') {
       this.broadcast({ type: 'error', message: 'Game is not in progress' });
       return;
@@ -96,10 +101,16 @@ export class GameManager {
 
   private handleEndTurn(playerId: string): void {
     if (this.state.phase !== 'playing') return;
+    if (AI_PLAYER_IDS.has(playerId)) return;
 
     this.endedTurns.add(playerId);
     this.broadcast({ type: 'player_turn_ended', playerId });
     console.log(`${playerId} ended turn (${this.endedTurns.size}/${PLAYERS.length})`);
+
+    // When human ends turn, trigger all AI players
+    if (playerId === HUMAN_PLAYER_ID) {
+      this.runAIPlayers();
+    }
 
     // Resolve when all players have ended their turn
     if (this.endedTurns.size >= PLAYERS.length) {
@@ -129,6 +140,22 @@ export class GameManager {
 
     if (this.state.phase === 'finished') {
       console.log('Game finished!');
+    }
+  }
+
+  private runAIPlayers(): void {
+    for (const aiId of AI_PLAYER_IDS) {
+      const player = this.state.players.get(aiId);
+      if (!player || !player.isAlive) continue;
+      if (this.endedTurns.has(aiId)) continue;
+
+      const actions = generateAIActions(this.state, aiId);
+      this.pendingActions.set(aiId, actions);
+      this.endedTurns.add(aiId);
+
+      this.broadcast({ type: 'actions_acknowledged', playerId: aiId, count: actions.length });
+      this.broadcast({ type: 'player_turn_ended', playerId: aiId });
+      console.log(`AI ${aiId} submitted ${actions.length} actions`);
     }
   }
 
