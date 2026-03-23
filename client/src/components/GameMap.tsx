@@ -8,8 +8,7 @@ import Territory from "./Territory";
 
 interface GameMapProps {
   gameState: SerializedGameState;
-  selectedTerritory: string | null;
-  targetableTerritories: Set<string>;
+  highlightPlayerId: string | null;
   onTerritoryClick: (territoryId: string) => void;
   onTerritoryHover: (territoryId: string | null) => void;
   hoveredTerritory: string | null;
@@ -17,8 +16,7 @@ interface GameMapProps {
 
 export default function GameMap({
   gameState,
-  selectedTerritory,
-  targetableTerritories,
+  highlightPlayerId,
   onTerritoryClick,
   onTerritoryHover,
   hoveredTerritory,
@@ -148,14 +146,19 @@ export default function GameMap({
           )?.[0];
           const continentColor = continentId ? CONTINENT_COLORS[continentId] : undefined;
 
+          const isHighlighted =
+            highlightPlayerId !== null && territory.ownerId === highlightPlayerId;
+          const isDimmed =
+            highlightPlayerId !== null && territory.ownerId !== highlightPlayerId;
+
           return (
             <Territory
               key={shape.id}
               shape={shape}
               territory={territory}
               owner={owner}
-              isSelected={selectedTerritory === shape.id}
-              isTargetable={targetableTerritories.has(shape.id)}
+              isHighlighted={isHighlighted}
+              isDimmed={isDimmed}
               onClick={handleTerritoryClick}
               onHover={onTerritoryHover}
               continentColor={continentColor}
