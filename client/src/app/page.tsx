@@ -21,10 +21,7 @@ export default function Home() {
   } = useGameSocket();
 
   const [activePlayerId, setActivePlayerId] = useState("p1");
-  const [actions, setActions] = useState<Record<string, PlayerAction[]>>({
-    p1: [],
-    p2: [],
-  });
+  const [actions, setActions] = useState<Record<string, PlayerAction[]>>({});
   const [selectedTerritory, setSelectedTerritory] = useState<string | null>(
     null
   );
@@ -39,7 +36,7 @@ export default function Home() {
   useEffect(() => {
     if (gameState && gameState.turnNumber !== prevTurnRef.current) {
       prevTurnRef.current = gameState.turnNumber;
-      setActions({ p1: [], p2: [] });
+      setActions({});
       setSelectedTerritory(null);
       setTargetTerritory(null);
     }
@@ -114,10 +111,17 @@ export default function Home() {
     setSelectedTerritory(null);
     setTargetTerritory(null);
 
-    // Auto-switch to the other player
-    const otherPlayer = activePlayerId === "p1" ? "p2" : "p1";
-    if (!turnEndedPlayers.has(otherPlayer)) {
-      setActivePlayerId(otherPlayer);
+    // Auto-switch to the next player who hasn't ended their turn
+    if (gameState) {
+      const playerIds = Object.keys(gameState.players);
+      const currentIdx = playerIds.indexOf(activePlayerId);
+      for (let offset = 1; offset < playerIds.length; offset++) {
+        const nextId = playerIds[(currentIdx + offset) % playerIds.length];
+        if (!turnEndedPlayers.has(nextId)) {
+          setActivePlayerId(nextId);
+          break;
+        }
+      }
     }
   }, [activePlayerId, currentActions, submitActions, endTurn, turnEndedPlayers]);
 

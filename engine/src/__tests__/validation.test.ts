@@ -6,10 +6,16 @@ import { areAdjacent, getPlayerTerritories } from '../map.js';
 
 function setupGame(): GameState {
   const state = createGame([
-    { id: 'p1', name: 'Alice' },
-    { id: 'p2', name: 'Bob' },
+    { id: 'p1', name: 'Player 1' },
+    { id: 'p2', name: 'Player 2' },
+    { id: 'p3', name: 'Player 3' },
+    { id: 'p4', name: 'Player 4' },
+    { id: 'p5', name: 'Player 5' },
+    { id: 'p6', name: 'Player 6' },
+    { id: 'p7', name: 'Player 7' },
+    { id: 'p8', name: 'Player 8' },
   ]);
-  return assignTerritories(state, 42);
+  return assignTerritories(state);
 }
 
 describe('validateAction', () => {
