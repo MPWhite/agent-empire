@@ -2,22 +2,11 @@ import type { GameState, GamePhase, PlayerAction, TurnResult, Player, Territory,
 
 // ── Client → Server Messages ──
 
-export interface SubmitActionsMessage {
-  type: 'submit_actions';
-  playerId: string;
-  actions: PlayerAction[];
-}
-
-export interface EndTurnMessage {
-  type: 'end_turn';
-  playerId: string;
-}
-
 export interface NewGameMessage {
   type: 'new_game';
 }
 
-export type ClientMessage = SubmitActionsMessage | EndTurnMessage | NewGameMessage;
+export type ClientMessage = NewGameMessage;
 
 // ── Server → Client Messages ──
 

@@ -4,7 +4,6 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import type {
   ServerMessage,
   SerializedGameState,
-  PlayerAction,
   GameEvent,
 } from "./types";
 
@@ -14,9 +13,6 @@ export interface GameConnection {
   gameState: SerializedGameState | null;
   events: GameEvent[];
   connected: boolean;
-  turnEndedPlayers: Set<string>;
-  submitActions: (playerId: string, actions: PlayerAction[]) => void;
-  endTurn: (playerId: string) => void;
   newGame: () => void;
 }
 
@@ -26,9 +22,6 @@ export function useGameSocket(): GameConnection {
   const [connected, setConnected] = useState(false);
   const [gameState, setGameState] = useState<SerializedGameState | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
-  const [turnEndedPlayers, setTurnEndedPlayers] = useState<Set<string>>(
-    new Set()
-  );
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -44,17 +37,10 @@ export function useGameSocket(): GameConnection {
       switch (msg.type) {
         case "game_state":
           setGameState(msg.state);
-          setTurnEndedPlayers(new Set());
           break;
         case "turn_result":
           setGameState(msg.result.state);
-          setEvents((prev) => [...prev, ...msg.result.events].slice(-200));
-          setTurnEndedPlayers(new Set());
-          break;
-        case "player_turn_ended":
-          setTurnEndedPlayers((prev) => new Set([...prev, msg.playerId]));
-          break;
-        case "actions_acknowledged":
+          setEvents((prev) => [...prev, ...msg.result.events].slice(-500));
           break;
         case "error":
           console.error("Server error:", msg.message);
@@ -73,20 +59,6 @@ export function useGameSocket(): GameConnection {
     }
   }, []);
 
-  const submitActions = useCallback(
-    (playerId: string, actions: PlayerAction[]) => {
-      send({ type: "submit_actions", playerId, actions });
-    },
-    [send]
-  );
-
-  const endTurn = useCallback(
-    (playerId: string) => {
-      send({ type: "end_turn", playerId });
-    },
-    [send]
-  );
-
   const newGame = useCallback(() => {
     setEvents([]);
     send({ type: "new_game" });
@@ -96,9 +68,6 @@ export function useGameSocket(): GameConnection {
     gameState,
     events,
     connected,
-    turnEndedPlayers,
-    submitActions,
-    endTurn,
     newGame,
   };
 }

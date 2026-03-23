@@ -8,8 +8,8 @@ interface TerritoryProps {
   shape: TerritoryShape;
   territory: TerritoryData;
   owner: Player | null;
-  isSelected: boolean;
-  isTargetable: boolean;
+  isHighlighted: boolean;
+  isDimmed: boolean;
   onClick: (territoryId: string) => void;
   onHover: (territoryId: string | null) => void;
   continentColor?: string;
@@ -20,24 +20,25 @@ export default function Territory({
   shape,
   territory,
   owner,
-  isSelected,
-  isTargetable,
+  isHighlighted,
+  isDimmed,
   onClick,
   onHover,
   continentColor,
   viewBox,
 }: TerritoryProps) {
   const fillColor = owner?.color ?? continentColor ?? "#3a5a40";
-  const fillOpacity = owner ? Math.min(0.5 + (territory.troops / 30) * 0.4, 0.9) : 0.4;
+  let fillOpacity = owner ? Math.min(0.5 + (territory.troops / 30) * 0.4, 0.9) : 0.4;
 
   let strokeColor = "#1a2740";
   let strokeWidth = 0.5;
-  if (isSelected) {
-    strokeColor = "#fbbf24";
+
+  if (isHighlighted) {
+    strokeColor = owner?.color ?? "#fbbf24";
     strokeWidth = 2;
-  } else if (isTargetable) {
-    strokeColor = "#ef4444";
-    strokeWidth = 1.5;
+    fillOpacity = Math.min(fillOpacity + 0.15, 1);
+  } else if (isDimmed) {
+    fillOpacity = 0.15;
   }
 
   // Show labels when territory occupies enough of the visible area
@@ -70,7 +71,7 @@ export default function Territory({
       <g
         transform={`translate(${shape.cx}, ${shape.cy}) scale(${labelScale}) translate(${-shape.cx}, ${-shape.cy})`}
         style={{
-          opacity: showLabels ? 1 : 0,
+          opacity: showLabels ? (isDimmed ? 0.3 : 1) : 0,
           transition: "opacity 300ms ease-in-out",
           pointerEvents: showLabels ? "auto" : "none",
         }}
