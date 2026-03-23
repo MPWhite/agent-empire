@@ -20,7 +20,7 @@ export default function Home() {
     newGame,
   } = useGameSocket();
 
-  const [activePlayerId, setActivePlayerId] = useState("p1");
+  const activePlayerId = "p1";
   const [actions, setActions] = useState<Record<string, PlayerAction[]>>({});
   const [selectedTerritory, setSelectedTerritory] = useState<string | null>(
     null
@@ -110,20 +110,7 @@ export default function Home() {
     endTurn(activePlayerId);
     setSelectedTerritory(null);
     setTargetTerritory(null);
-
-    // Auto-switch to the next player who hasn't ended their turn
-    if (gameState) {
-      const playerIds = Object.keys(gameState.players);
-      const currentIdx = playerIds.indexOf(activePlayerId);
-      for (let offset = 1; offset < playerIds.length; offset++) {
-        const nextId = playerIds[(currentIdx + offset) % playerIds.length];
-        if (!turnEndedPlayers.has(nextId)) {
-          setActivePlayerId(nextId);
-          break;
-        }
-      }
-    }
-  }, [activePlayerId, currentActions, submitActions, endTurn, turnEndedPlayers]);
+  }, [activePlayerId, currentActions, submitActions, endTurn]);
 
   const handleClearActions = useCallback(() => {
     setActions((prev) => ({
@@ -132,150 +119,168 @@ export default function Home() {
     }));
   }, [activePlayerId]);
 
-  const handleSwitchPlayer = useCallback((playerId: string) => {
-    setActivePlayerId(playerId);
-    setSelectedTerritory(null);
-    setTargetTerritory(null);
-  }, []);
-
   // ── Loading state ──
   if (!gameState) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-zinc-400 text-sm">
-          {connected ? "Loading game..." : "Connecting to server..."}
+        <div className="text-zinc-500 text-sm font-mono">
+          {connected ? "LOADING GAME STATE..." : "CONNECTING TO SERVER..."}
         </div>
       </div>
     );
   }
 
-  const players = Object.values(gameState.players);
+  // Count territories for header stats
+  const playerTerritories = Object.values(gameState.map.territories).filter(
+    (t) => t.ownerId === activePlayerId
+  ).length;
+  const playerTroops = Object.values(gameState.map.territories)
+    .filter((t) => t.ownerId === activePlayerId)
+    .reduce((sum, t) => sum + t.troops, 0);
 
   // ── Game UI ──
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-200">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">Risk MMO</h1>
-          <span className="text-zinc-400 text-sm font-mono">
-            Turn {gameState.turnNumber}
+    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      {/* Header bar */}
+      <header className="flex items-center justify-between px-4 h-10 border-b border-zinc-800 bg-zinc-950 shrink-0">
+        <div className="flex items-center gap-4">
+          <h1 className="text-sm font-bold tracking-wide text-zinc-300 uppercase">
+            Agent Empires
+          </h1>
+          <div className="w-px h-4 bg-zinc-800" />
+          <span className="text-zinc-500 text-xs font-mono">
+            TURN {gameState.turnNumber}
+          </span>
+          <span className="text-zinc-600 text-xs font-mono">
+            PHASE: {gameState.phase.toUpperCase()}
           </span>
         </div>
 
-        {/* Player switcher */}
-        <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
-          {players.map((player) => {
-            const isActive = player.id === activePlayerId;
-            const hasEnded = turnEndedPlayers.has(player.id);
-            return (
-              <button
-                key={player.id}
-                onClick={() => handleSwitchPlayer(player.id)}
-                disabled={hasEnded}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-white shadow-sm text-zinc-900"
-                    : hasEnded
-                      ? "text-zinc-300 cursor-not-allowed"
-                      : "text-zinc-500 hover:text-zinc-700"
-                }`}
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: player.color }}
-                />
-                {player.name}
-                {hasEnded && (
-                  <span className="text-xs text-zinc-400">done</span>
-                )}
-              </button>
-            );
-          })}
+        {/* Player + stats */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-xs font-mono text-zinc-500">
+            <span>{playerTerritories} TERR</span>
+            <span>{playerTroops} TROOPS</span>
+          </div>
+          <div className="w-px h-4 bg-zinc-800" />
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-2 h-2"
+              style={{ backgroundColor: gameState.players["p1"]?.color }}
+            />
+            <span className="text-xs font-medium text-zinc-400">YOU</span>
+          </div>
         </div>
 
+        {/* Controls */}
         <div className="flex items-center gap-2">
           {gameState.phase === "playing" && (
             <button
               onClick={handleEndTurn}
               disabled={hasEndedTurn}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-xs font-mono font-medium py-1 px-3 transition-colors"
             >
               {hasEndedTurn
-                ? "Waiting..."
-                : `End Turn (${currentActions.length})`}
+                ? "WAITING..."
+                : `END TURN (${currentActions.length})`}
             </button>
           )}
           {currentActions.length > 0 && !hasEndedTurn && (
             <button
               onClick={handleClearActions}
-              className="text-zinc-400 hover:text-zinc-600 text-sm px-2"
+              className="text-zinc-500 hover:text-zinc-300 text-xs font-mono px-2"
             >
-              Clear
+              CLEAR
             </button>
           )}
           <button
             onClick={newGame}
-            className="text-zinc-400 hover:text-zinc-600 text-xs px-2 py-1 border border-zinc-200 rounded"
+            className="text-zinc-600 hover:text-zinc-400 text-xs font-mono px-2 py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
           >
-            New Game
+            NEW GAME
           </button>
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map area */}
-        <div className="flex-1 p-2 overflow-auto">
-          <GameMap
-            gameState={gameState}
-            selectedTerritory={selectedTerritory}
-            targetableTerritories={targetableTerritories}
-            onTerritoryClick={handleTerritoryClick}
-            onTerritoryHover={setHoveredTerritory}
-            hoveredTerritory={hoveredTerritory}
-          />
-        </div>
+      {/* Map — full width, takes remaining vertical space */}
+      <div className="flex-1 relative overflow-hidden">
+        <GameMap
+          gameState={gameState}
+          selectedTerritory={selectedTerritory}
+          targetableTerritories={targetableTerritories}
+          onTerritoryClick={handleTerritoryClick}
+          onTerritoryHover={setHoveredTerritory}
+          hoveredTerritory={hoveredTerritory}
+        />
 
-        {/* Sidebar */}
-        <aside className="w-72 border-l border-zinc-200 p-3 flex flex-col gap-3 overflow-y-auto">
-          <PlayerList
-            gameState={gameState}
-            currentPlayerId={activePlayerId}
+        {/* Connection status indicator */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5">
+          <div
+            className={`w-1.5 h-1.5 ${
+              connected ? "bg-emerald-500" : "bg-red-500"
+            }`}
           />
-          {gameState.phase === "playing" && !hasEndedTurn && (
-            <>
-              <ActionPanel
+          <span className="text-[10px] font-mono text-zinc-600 uppercase">
+            {connected ? "Live" : "Disconnected"}
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom control panels */}
+      <div className="shrink-0 border-t border-zinc-800 bg-zinc-950">
+        {gameState.phase === "finished" ? (
+          <div className="flex items-center justify-center gap-4 py-4">
+            <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
+              Game Over
+            </span>
+            <button
+              onClick={newGame}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-medium py-1.5 px-4 transition-colors"
+            >
+              NEW GAME
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 divide-x divide-zinc-800 h-48">
+            <div className="overflow-y-auto panel-scroll">
+              <PlayerList
                 gameState={gameState}
-                playerId={activePlayerId}
-                selectedTerritory={selectedTerritory}
-                targetTerritory={targetTerritory}
-                onAddAction={handleAddAction}
-                onClearSelection={handleClearSelection}
+                currentPlayerId={activePlayerId}
               />
+            </div>
+            <div className="overflow-y-auto panel-scroll">
+              {gameState.phase === "playing" && !hasEndedTurn ? (
+                <ActionPanel
+                  gameState={gameState}
+                  playerId={activePlayerId}
+                  selectedTerritory={selectedTerritory}
+                  targetTerritory={targetTerritory}
+                  onAddAction={handleAddAction}
+                  onClearSelection={handleClearSelection}
+                />
+              ) : (
+                <div className="p-3">
+                  <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
+                    Actions
+                  </h3>
+                  <p className="text-zinc-600 text-xs font-mono">
+                    {hasEndedTurn ? "WAITING FOR OTHER PLAYERS..." : "NO ACTIONS AVAILABLE"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="overflow-y-auto panel-scroll">
               <ActionQueue
                 actions={currentActions}
                 gameState={gameState}
                 onRemoveAction={handleRemoveAction}
               />
-            </>
-          )}
-          <EventLog events={events} gameState={gameState} />
-
-          {gameState.phase === "finished" && (
-            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 text-center">
-              <div className="text-amber-700 font-bold text-lg">
-                Game Over!
-              </div>
-              <button
-                onClick={newGame}
-                className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-1.5 px-4 rounded transition-colors"
-              >
-                New Game
-              </button>
             </div>
-          )}
-        </aside>
+            <div className="overflow-y-auto panel-scroll">
+              <EventLog events={events} gameState={gameState} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

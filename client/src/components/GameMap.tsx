@@ -93,19 +93,19 @@ export default function GameMap({
   }, [hoveredTerritory, gameState]);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full h-full">
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-        className="w-full h-auto select-none"
+        className="w-full h-full select-none"
         style={{
-          maxHeight: "calc(100vh - 200px)",
           cursor: zoomLevel > 1 ? "grab" : "default",
         }}
+        preserveAspectRatio="xMidYMid meet"
         {...handlers}
       >
         {/* Ocean background */}
-        <rect width="2000" height="857" fill="#1a2740" rx={8} />
+        <rect width="2000" height="857" fill="#0c1929" />
 
         {/* Cross-continent connection lines */}
         {adjacencyLines.map((line, i) => (
