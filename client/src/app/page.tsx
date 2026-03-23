@@ -241,7 +241,7 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-4 divide-x divide-zinc-800 h-48">
+          <div className="grid grid-cols-4 divide-x divide-zinc-800 h-80">
             <div className="overflow-y-auto panel-scroll">
               <PlayerList
                 gameState={gameState}
