@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useGameSocket } from "@/lib/socket";
-import { generateHeadlines, type Headline } from "@/lib/headlines";
+import { ReportEngine } from "@/lib/report-engine";
+import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import NewsFeed from "@/components/NewsFeed";
 import PlayerDetail from "@/components/PlayerDetail";
@@ -12,33 +13,136 @@ export default function Home() {
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
-  const [headlines, setHeadlines] = useState<Headline[]>([]);
-  const processedEventsRef = useRef(0);
+  const [reports, setReports] = useState<AnalystReport[]>([]);
+  const [pendingTurns, setPendingTurns] = useState(0);
 
-  // Generate headlines from new events
+  const reportEngineRef = useRef(new ReportEngine(10));
+  const processedEventsRef = useRef(0);
+  const reportIdRef = useRef(0);
+
+  // Process new events through the report engine
   useEffect(() => {
     if (!gameState || events.length <= processedEventsRef.current) return;
 
     const newEvents = events.slice(processedEventsRef.current);
-    const newHeadlines = generateHeadlines(
+    processedEventsRef.current = events.length;
+    const turnNumber = gameState.turnNumber - 1;
+
+    const trigger = reportEngineRef.current.addTurnEvents(
       newEvents,
       gameState,
-      gameState.turnNumber - 1
+      turnNumber
     );
-    processedEventsRef.current = events.length;
 
-    if (newHeadlines.length > 0) {
-      setHeadlines((prev) => [...prev, ...newHeadlines].slice(-500));
-    }
+    // Track pending turns for UI
+    setPendingTurns(turnNumber % 10);
+
+    if (!trigger) return;
+
+    // Generate report
+    const reportId = `report-${++reportIdRef.current}`;
+    const newReport: AnalystReport = {
+      id: reportId,
+      type: trigger.mode,
+      turnRange: trigger.turnRange,
+      text: "",
+      isStreaming: true,
+      timestamp: Date.now(),
+    };
+
+    setReports((prev) => [...prev, newReport].slice(-50));
+    reportEngineRef.current.markGenerating(true);
+
+    // Call the API
+    fetchReport(trigger.mode, trigger.events, trigger.state, trigger.turnRange, reportId);
   }, [events, gameState]);
 
-  // Reset headlines on new game
+  async function fetchReport(
+    mode: "dispatch" | "breaking",
+    triggerEvents: import("@/lib/types").GameEvent[],
+    state: import("@/lib/types").SerializedGameState,
+    turnRange: [number, number],
+    reportId: string
+  ) {
+    try {
+      const res = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, events: triggerEvents, state, turnRange }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Report API error:", res.status, errText);
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId
+              ? { ...r, text: `[Report generation failed: ${res.status}]`, isStreaming: false }
+              : r
+          )
+        );
+        reportEngineRef.current.markGenerating(false);
+        return;
+      }
+
+      if (mode === "dispatch" && res.body) {
+        // Stream the response
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          const current = accumulated;
+          setReports((prev) =>
+            prev.map((r) =>
+              r.id === reportId ? { ...r, text: current } : r
+            )
+          );
+        }
+
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId ? { ...r, isStreaming: false } : r
+          )
+        );
+      } else {
+        // Breaking: JSON response
+        const data = await res.json();
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId
+              ? { ...r, text: data.text, isStreaming: false }
+              : r
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Report fetch error:", err);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === reportId
+            ? { ...r, text: "[Failed to generate report]", isStreaming: false }
+            : r
+        )
+      );
+    } finally {
+      reportEngineRef.current.markGenerating(false);
+    }
+  }
+
+  // Reset on new game
   const prevTurnRef = useRef(gameState?.turnNumber);
   useEffect(() => {
     if (gameState && gameState.turnNumber === 1 && prevTurnRef.current !== 1) {
-      setHeadlines([]);
+      setReports([]);
       processedEventsRef.current = 0;
+      reportIdRef.current = 0;
+      reportEngineRef.current.reset();
       setSelectedPlayerId(null);
+      setPendingTurns(0);
     }
     prevTurnRef.current = gameState?.turnNumber;
   }, [gameState?.turnNumber, gameState]);
@@ -138,15 +242,17 @@ export default function Home() {
           <PlayerDetail
             playerId={selectedPlayerId}
             gameState={gameState}
-            headlines={headlines}
+            reports={reports}
             onClose={() => setSelectedPlayerId(null)}
           />
         ) : (
           <NewsFeed
-            headlines={headlines}
+            reports={reports}
             gameState={gameState}
             onPlayerClick={setSelectedPlayerId}
             selectedPlayerId={selectedPlayerId}
+            currentTurn={gameState.turnNumber}
+            pendingTurns={pendingTurns}
           />
         )}
       </div>
