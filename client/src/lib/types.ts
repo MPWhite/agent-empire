@@ -104,6 +104,16 @@ export interface SerializedTurnResult {
   events: GameEvent[];
 }
 
+// Analyst reports (LLM-generated)
+export interface AnalystReport {
+  id: string;
+  type: 'dispatch' | 'breaking';
+  turnRange: [number, number];
+  text: string;
+  isStreaming: boolean;
+  timestamp: number;
+}
+
 // Server messages
 export type ServerMessage =
   | { type: 'game_state'; state: SerializedGameState }

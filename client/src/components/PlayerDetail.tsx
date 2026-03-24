@@ -1,19 +1,19 @@
 "use client";
 
-import type { SerializedGameState } from "@/lib/types";
-import type { Headline } from "@/lib/headlines";
+import type { SerializedGameState, AnalystReport } from "@/lib/types";
+import ReportCard from "./ReportCard";
 
 interface PlayerDetailProps {
   playerId: string;
   gameState: SerializedGameState;
-  headlines: Headline[];
+  reports: AnalystReport[];
   onClose: () => void;
 }
 
 export default function PlayerDetail({
   playerId,
   gameState,
-  headlines,
+  reports,
   onClose,
 }: PlayerDetailProps) {
   const player = gameState.players[playerId];
@@ -48,10 +48,11 @@ export default function PlayerDetail({
       )
       .reduce((sum, c) => sum + c.bonusTroops, 0);
 
-  // Player's recent headlines
-  const playerHeadlines = headlines
-    .filter((h) => h.playerIds.includes(playerId))
-    .slice(-30);
+  // Filter reports that mention this player's name in their text
+  const playerName = player.name;
+  const relevantReports = reports.filter(
+    (r) => r.text.includes(playerName)
+  );
 
   return (
     <div className="h-80 flex flex-col">
@@ -101,37 +102,21 @@ export default function PlayerDetail({
           </div>
         </div>
 
-        {/* Activity feed */}
+        {/* Reports mentioning this player */}
         <div className="overflow-y-auto panel-scroll">
           <div className="sticky top-0 bg-zinc-950 border-b border-zinc-800 px-3 py-1.5 z-10">
             <h4 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest font-mono">
-              Recent Activity
+              Coverage
             </h4>
           </div>
-          <div className="divide-y divide-zinc-900">
-            {playerHeadlines.length === 0 && (
+          <div>
+            {relevantReports.length === 0 && (
               <div className="px-3 py-4 text-zinc-700 text-xs font-mono">
-                NO ACTIVITY RECORDED
+                NO COVERAGE YET
               </div>
             )}
-            {playerHeadlines.map((h) => (
-              <div key={h.id} className="px-3 py-1.5 font-mono">
-                <div
-                  className={`text-[11px] ${
-                    h.severity === "breaking"
-                      ? "text-red-400 font-bold"
-                      : h.severity === "major"
-                      ? "text-zinc-300"
-                      : "text-zinc-600"
-                  }`}
-                >
-                  {h.headline}
-                </div>
-                {h.subtext && (
-                  <div className="text-[10px] text-zinc-700">{h.subtext}</div>
-                )}
-                <div className="text-[9px] text-zinc-700">Turn {h.turnNumber}</div>
-              </div>
+            {relevantReports.map((r) => (
+              <ReportCard key={r.id} report={r} />
             ))}
           </div>
         </div>
