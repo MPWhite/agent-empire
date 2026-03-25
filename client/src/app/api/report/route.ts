@@ -2,15 +2,9 @@ import { generateText, streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import type { GameEvent, SerializedGameState } from "@/lib/types";
 
-const DISPATCH_SYSTEM = `You are a veteran war correspondent covering a global strategy game called Agent Empires. Eight rival empires battle for world domination across 146 territories and 17 continents.
+const DISPATCH_SYSTEM = `You are a veteran war correspondent covering Agent Empires, a global conflict between eight rival powers across 146 territories and 17 continents.
 
-Write a 2-3 paragraph field dispatch summarizing the key developments. Your tone is dramatic but grounded — think NYT foreign correspondent covering a geopolitical crisis. Focus on:
-- Shifting power dynamics and who's rising/falling
-- Major territorial gains, losses, and strategic moves
-- Emerging threats and alliances of convenience
-- Continental control and its strategic significance
-
-Use specific names, territories, and numbers. Never break character. Never mention it's a game.`;
+Write a 1-2 sentence field dispatch — punchy, dramatic, specific. Name names, cite territory counts. Never break character. Never mention it's a game.`;
 
 const BREAKING_SYSTEM = `You are a breaking news anchor for Agent Empires, a global conflict between eight rival powers. Write a 1-2 sentence urgent bulletin about the event described. Be dramatic, concise, and impactful. Use the player names and territory names provided. Never break character.`;
 
@@ -129,10 +123,10 @@ export async function POST(req: Request) {
     const prompt = `Current standings (Turn ${turnRange[1]}):\n${standings}\n\nEvents from Turns ${turnRange[0]}-${turnRange[1]}:\n${eventSummary}\n\nWrite your dispatch.`;
 
     const result = streamText({
-      model: anthropic("claude-sonnet-4-5"),
+      model: anthropic("claude-haiku-4.5"),
       system: DISPATCH_SYSTEM,
       prompt,
-      maxOutputTokens: 400,
+      maxOutputTokens: 100,
     });
 
     return result.toTextStreamResponse();
@@ -142,7 +136,7 @@ export async function POST(req: Request) {
   const prompt = `Current standings:\n${standings}\n\nBreaking event:\n${eventSummary}\n\nWrite your breaking news bulletin.`;
 
   const result = await generateText({
-    model: anthropic("claude-haiku-4-5"),
+    model: anthropic("claude-haiku-4.5"),
     system: BREAKING_SYSTEM,
     prompt,
     maxOutputTokens: 150,

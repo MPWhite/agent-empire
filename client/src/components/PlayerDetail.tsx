@@ -55,7 +55,7 @@ export default function PlayerDetail({
   );
 
   return (
-    <div className="h-80 flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 shrink-0">
         <div className="flex items-center gap-3">
@@ -85,9 +85,9 @@ export default function PlayerDetail({
       </div>
 
       {/* Content */}
-      <div className="flex-1 grid grid-cols-[auto_1fr] divide-x divide-zinc-800 overflow-hidden">
+      <div className="flex-1 flex flex-col md:grid md:grid-cols-[auto_1fr] divide-y md:divide-y-0 md:divide-x divide-zinc-800 overflow-hidden">
         {/* Stats panel */}
-        <div className="w-56 p-3 overflow-y-auto panel-scroll">
+        <div className="w-full md:w-56 p-3 overflow-y-auto panel-scroll shrink-0">
           <h4 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3 font-mono">
             Intelligence
           </h4>

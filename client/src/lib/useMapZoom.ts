@@ -62,7 +62,13 @@ export function useMapZoom(
       const rect = container.getBoundingClientRect();
       const vb = computeFitViewBox(rect.width, rect.height);
       baseViewBox.current = vb;
-      setViewBox(vb);
+      // Start at MIN_ZOOM level, centered on the world
+      const aspect = vb.w / vb.h;
+      const w = vb.w / MIN_ZOOM;
+      const h = w / aspect;
+      const cx = vb.x + vb.w / 2;
+      const cy = vb.y + vb.h / 2;
+      setViewBox({ x: cx - w / 2, y: cy - h / 2, w, h });
     };
 
     const ro = new ResizeObserver(update);
@@ -76,7 +82,8 @@ export function useMapZoom(
   function clampViewBox(vb: ViewBox): ViewBox {
     const base = baseViewBox.current;
     const aspect = base.w / base.h;
-    const w = Math.max(base.w / MAX_ZOOM, Math.min(base.w, vb.w));
+    const maxW = base.w / MIN_ZOOM;
+    const w = Math.max(base.w / MAX_ZOOM, Math.min(maxW, vb.w));
     const h = w / aspect;
     // Allow panning across extended world + ocean margins
     const minX = Math.min(base.x, 0);
@@ -115,7 +122,7 @@ export function useMapZoom(
       const factor = e.deltaY < 0 ? 0.9 : 1.1;
       const aspect = base.w / base.h;
 
-      const newW = Math.max(base.w / MAX_ZOOM, Math.min(base.w, vb.w * factor));
+      const newW = Math.max(base.w / MAX_ZOOM, Math.min(base.w / MIN_ZOOM, vb.w * factor));
       const newH = newW / aspect;
 
       if (newW === vb.w) return;
@@ -169,7 +176,13 @@ export function useMapZoom(
   }, []);
 
   const resetZoom = useCallback(() => {
-    setViewBox(baseViewBox.current);
+    const base = baseViewBox.current;
+    const aspect = base.w / base.h;
+    const w = base.w / MIN_ZOOM;
+    const h = w / aspect;
+    const cx = base.x + base.w / 2;
+    const cy = base.y + base.h / 2;
+    setViewBox({ x: cx - w / 2, y: cy - h / 2, w, h });
   }, []);
 
   const focusOn = useCallback((territoryIds: string[]) => {
