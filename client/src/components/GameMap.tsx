@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { SerializedGameState } from "@/lib/types";
 import { TERRITORY_SHAPES, CONTINENT_COLORS } from "@/lib/map-paths";
 import { useMapZoom } from "@/lib/useMapZoom";
@@ -12,6 +12,7 @@ interface GameMapProps {
   onTerritoryClick: (territoryId: string) => void;
   onTerritoryHover: (territoryId: string | null) => void;
   hoveredTerritory: string | null;
+  focusRegion?: { territoryIds: string[] } | null;
 }
 
 export default function GameMap({
@@ -20,10 +21,18 @@ export default function GameMap({
   onTerritoryClick,
   onTerritoryHover,
   hoveredTerritory,
+  focusRegion,
 }: GameMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { viewBox, zoomLevel, wasPanning, resetZoom, handlers } = useMapZoom(svgRef, containerRef);
+  const { viewBox, zoomLevel, wasPanning, resetZoom, focusOn, handlers } = useMapZoom(svgRef, containerRef);
+
+  // Zoom to focus region when it changes
+  useEffect(() => {
+    if (focusRegion?.territoryIds.length) {
+      focusOn(focusRegion.territoryIds);
+    }
+  }, [focusRegion, focusOn]);
 
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {

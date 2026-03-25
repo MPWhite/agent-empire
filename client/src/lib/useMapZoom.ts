@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TERRITORY_SHAPES } from "./map-paths";
 
 export interface ViewBox {
   x: number;
@@ -171,11 +172,50 @@ export function useMapZoom(
     setViewBox(baseViewBox.current);
   }, []);
 
+  const focusOn = useCallback((territoryIds: string[]) => {
+    const shapes = TERRITORY_SHAPES.filter((s) => territoryIds.includes(s.id));
+    if (shapes.length === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const s of shapes) {
+      minX = Math.min(minX, s.bbox.x);
+      minY = Math.min(minY, s.bbox.y);
+      maxX = Math.max(maxX, s.bbox.x + s.bbox.w);
+      maxY = Math.max(maxY, s.bbox.y + s.bbox.h);
+    }
+
+    // Add 30% padding
+    const padX = (maxX - minX) * 0.3;
+    const padY = (maxY - minY) * 0.3;
+    const base = baseViewBox.current;
+    const aspect = base.w / base.h;
+
+    let w = (maxX - minX) + padX * 2;
+    let h = (maxY - minY) + padY * 2;
+
+    // Maintain aspect ratio
+    if (w / h > aspect) {
+      h = w / aspect;
+    } else {
+      w = h * aspect;
+    }
+
+    // Ensure minimum zoom (don't zoom in too far)
+    w = Math.max(w, base.w / MAX_ZOOM);
+    h = w / aspect;
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    setViewBox(clampViewBox({ x: cx - w / 2, y: cy - h / 2, w, h }));
+  }, []);
+
   return {
     viewBox,
     zoomLevel,
     wasPanning,
     resetZoom,
+    focusOn,
     handlers: {
       onMouseDown,
       onMouseMove,

@@ -2,14 +2,17 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useGameSocket } from "@/lib/socket";
+import { useHistoryMode } from "@/lib/useHistoryMode";
 import { ReportEngine } from "@/lib/report-engine";
 import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import NewsFeed from "@/components/NewsFeed";
 import PlayerDetail from "@/components/PlayerDetail";
+import TimelineDrawer from "@/components/TimelineDrawer";
 
 export default function Home() {
-  const { gameState, events, connected, newGame } = useGameSocket();
+  const { gameState, events, connected, newGame, sendMessage, onHistoryMeta, onTurnSnapshot } = useGameSocket();
+  const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
@@ -147,6 +150,16 @@ export default function Home() {
     prevTurnRef.current = gameState?.turnNumber;
   }, [gameState?.turnNumber, gameState]);
 
+  // History mode: which state should the map display?
+  const displayState = history.isActive && history.historicalState
+    ? history.historicalState
+    : gameState;
+
+  // Focus region for zoom-to-conflict
+  const focusRegion = history.selectedEvent?.territoryIds?.length
+    ? { territoryIds: history.selectedEvent.territoryIds }
+    : null;
+
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {
       if (!gameState) return;
@@ -195,15 +208,25 @@ export default function Home() {
                 connected ? "bg-emerald-500" : "bg-red-500"
               }`}
             />
-            <span className="text-[10px] font-mono text-zinc-600 uppercase">
+            <span className="text-xs font-mono text-zinc-600 uppercase">
               {connected ? "Live" : "Disconnected"}
             </span>
           </div>
           <div className="w-px h-4 bg-zinc-800" />
-          <span className="text-[10px] font-mono text-zinc-600">
+          <span className="text-xs font-mono text-zinc-600">
             AUTO 2s/turn
           </span>
           <div className="w-px h-4 bg-zinc-800" />
+          <button
+            onClick={history.isActive ? history.closeTimeline : history.openTimeline}
+            className={`text-xs font-mono px-2 py-1 border transition-colors ${
+              history.isActive
+                ? "text-amber-400 border-amber-800 hover:border-amber-700"
+                : "text-zinc-600 hover:text-zinc-400 border-zinc-800 hover:border-zinc-700"
+            }`}
+          >
+            {history.isActive ? "CLOSE HISTORY" : "VIEW HISTORY"}
+          </button>
           <button
             onClick={newGame}
             className="text-zinc-600 hover:text-zinc-400 text-xs font-mono px-2 py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
@@ -216,17 +239,31 @@ export default function Home() {
       {/* Map — full width, takes remaining vertical space */}
       <div className="flex-1 relative overflow-hidden">
         <GameMap
-          gameState={gameState}
+          gameState={displayState!}
           highlightPlayerId={selectedPlayerId}
           onTerritoryClick={handleTerritoryClick}
           onTerritoryHover={setHoveredTerritory}
           hoveredTerritory={hoveredTerritory}
+          focusRegion={focusRegion}
         />
       </div>
 
-      {/* Bottom panel — news feed or player detail */}
+      {/* Bottom panel — timeline drawer, news feed, or player detail */}
       <div className="shrink-0 border-t border-zinc-800 bg-zinc-950">
-        {gameState.phase === "finished" && !selectedPlayerId ? (
+        {history.isActive ? (
+          <TimelineDrawer
+            majorEvents={history.majorEvents}
+            totalTurns={history.totalTurns}
+            currentLiveTurn={gameState.turnNumber}
+            viewingTurn={history.viewingTurn}
+            selectedEvent={history.selectedEvent}
+            players={gameState.players}
+            onSelectEvent={history.selectEvent}
+            onGoToTurn={history.goToTurn}
+            onGoToLive={history.goToLive}
+            onClose={history.closeTimeline}
+          />
+        ) : gameState.phase === "finished" && !selectedPlayerId ? (
           <div className="flex items-center justify-center gap-4 py-4">
             <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
               Game Over

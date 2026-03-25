@@ -10,6 +10,8 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.63",
+    "ai": "^6.0.137",
     "engine": "1.0.0",
     "ws": "^8.18.0"
   },

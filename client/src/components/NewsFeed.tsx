@@ -34,12 +34,12 @@ export default function NewsFeed({
       <div className="overflow-y-auto panel-scroll">
         <div className="sticky top-0 bg-zinc-950 border-b border-zinc-800 px-3 py-1.5 z-10">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest font-mono flex items-center gap-2">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
               War Desk
             </h3>
             {pendingTurns > 0 && (
-              <span className="text-[9px] font-mono text-zinc-700">
+              <span className="text-xs font-mono text-zinc-600">
                 Gathering intel... ({pendingTurns} turns)
               </span>
             )}
@@ -49,10 +49,10 @@ export default function NewsFeed({
         <div>
           {reports.length === 0 && (
             <div className="px-3 py-8 text-center">
-              <div className="text-zinc-700 text-xs font-mono mb-1">
+              <div className="text-zinc-600 text-sm font-mono mb-1">
                 AWAITING FIRST DISPATCH
               </div>
-              <div className="text-zinc-800 text-[10px] font-mono">
+              <div className="text-zinc-700 text-xs font-mono">
                 First report in ~{Math.max(1, 10 - currentTurn)} turns
               </div>
             </div>
@@ -65,7 +65,7 @@ export default function NewsFeed({
       </div>
 
       {/* Player leaderboard sidebar */}
-      <div className="w-56 overflow-y-auto panel-scroll">
+      <div className="w-64 overflow-y-auto panel-scroll">
         <PlayerLeaderboard
           gameState={gameState}
           onPlayerClick={onPlayerClick}

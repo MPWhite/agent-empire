@@ -9,6 +9,16 @@ import {
 import { generateAIActions } from './ai/index.js';
 import { saveGame, loadGame } from './persistence.js';
 import {
+  createHistory,
+  appendTurn,
+  addMajorEvent,
+  detectMajorEvents,
+  saveHistory,
+  loadHistory,
+  type GameHistory,
+} from './history.js';
+import { generateEventSummary } from './history-summaries.js';
+import {
   serializeGameState,
   serializeTurnResult,
   type ServerMessage,
@@ -31,6 +41,7 @@ const TURN_INTERVAL_MS = 2000;
 
 export class GameManager {
   private state: GameState;
+  private history: GameHistory;
   private connections = new Set<WebSocket>();
   private autoPlayTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -38,9 +49,12 @@ export class GameManager {
     const loaded = loadGame();
     if (loaded) {
       this.state = loaded;
+      this.history = loadHistory() ?? createHistory(loaded);
       console.log(`Loaded saved game — turn ${loaded.turnNumber}, phase: ${loaded.phase}`);
     } else {
       this.state = this.createFreshGame();
+      this.history = createHistory(this.state);
+      saveHistory(this.history);
       console.log('Created new game');
     }
     this.startAutoPlay();
@@ -83,17 +97,33 @@ export class GameManager {
     }
 
     // Resolve the turn
+    const previousState = this.state;
     const result = resolveTurn(this.state, allActions);
     this.state = result.state;
 
     saveGame(this.state);
+
+    // Persist history
+    appendTurn(this.history, this.state);
+    const majorEvents = detectMajorEvents(previousState, this.state, result.events);
+    for (const event of majorEvents) {
+      addMajorEvent(this.history, event);
+      // Fire-and-forget LLM summary generation
+      generateEventSummary(event, this.history).then((summary) => {
+        if (summary) {
+          event.summary = summary;
+          saveHistory(this.history);
+        }
+      });
+    }
+    saveHistory(this.history);
 
     this.broadcast({
       type: 'turn_result',
       result: serializeTurnResult(result),
     });
 
-    console.log(`Turn ${result.state.turnNumber - 1} resolved. ${result.events.length} events.`);
+    console.log(`Turn ${result.state.turnNumber - 1} resolved. ${result.events.length} events.${majorEvents.length > 0 ? ` ${majorEvents.length} major event(s).` : ''}`);
 
     if (this.state.phase === 'finished') {
       this.stopAutoPlay();
@@ -121,17 +151,43 @@ export class GameManager {
     });
   }
 
-  private handleMessage(_ws: WebSocket, msg: ClientMessage): void {
+  private handleMessage(ws: WebSocket, msg: ClientMessage): void {
     switch (msg.type) {
       case 'new_game':
         this.handleNewGame();
         break;
+      case 'request_history':
+        this.handleRequestHistory(ws);
+        break;
+      case 'request_turn':
+        this.handleRequestTurn(ws, msg.turnNumber);
+        break;
+    }
+  }
+
+  private handleRequestHistory(ws: WebSocket): void {
+    this.send(ws, {
+      type: 'history_meta',
+      totalTurns: this.history.turns.length,
+      majorEvents: this.history.majorEvents,
+      playerNames: this.history.playerNames,
+    });
+  }
+
+  private handleRequestTurn(ws: WebSocket, turnNumber: number): void {
+    const snapshot = this.history.turns.find((t) => t.turnNumber === turnNumber);
+    if (snapshot) {
+      this.send(ws, { type: 'turn_snapshot', turnNumber, snapshot });
+    } else {
+      this.send(ws, { type: 'error', message: `Turn ${turnNumber} not found in history` });
     }
   }
 
   private handleNewGame(): void {
     this.stopAutoPlay();
     this.state = this.createFreshGame();
+    this.history = createHistory(this.state);
+    saveHistory(this.history);
     this.broadcast({ type: 'game_state', state: serializeGameState(this.state) });
     console.log('New game created');
     this.startAutoPlay();

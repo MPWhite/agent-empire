@@ -38,7 +38,7 @@ export default function PlayerLeaderboard({
 
   return (
     <div className="p-3">
-      <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 font-mono">
+      <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2 font-mono">
         Leaderboard
       </h3>
       <div className="space-y-0.5">
@@ -56,21 +56,21 @@ export default function PlayerLeaderboard({
                   : "hover:bg-zinc-900 border border-transparent"
               } ${!player.isAlive ? "opacity-30" : ""}`}
             >
-              <span className="text-zinc-600 font-mono text-[10px] w-4">
+              <span className="text-zinc-600 font-mono text-xs w-5">
                 {player.isAlive ? `#${i + 1}` : "—"}
               </span>
               <div
-                className="w-2 h-2 shrink-0"
+                className="w-2.5 h-2.5 shrink-0 rounded-sm"
                 style={{ backgroundColor: player.color }}
               />
               <span
-                className={`font-mono flex-1 truncate ${
+                className={`font-mono text-sm flex-1 truncate ${
                   isSelected ? "text-zinc-200" : "text-zinc-400"
                 }`}
               >
                 {player.name}
               </span>
-              <div className="flex gap-2 text-zinc-600 font-mono text-[10px] shrink-0">
+              <div className="flex gap-2 text-zinc-500 font-mono text-xs shrink-0">
                 <span>{s.territories}T</span>
                 <span>{s.troops}U</span>
               </div>
