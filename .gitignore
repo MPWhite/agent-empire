@@ -13,6 +13,10 @@ dist/
 
 # Game state persistence
 game-state.json
+game-history.json
+
+# Brainstorm mockups
+.superpowers/
 
 # Debug logs
 npm-debug.log*

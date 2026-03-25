@@ -1,4 +1,5 @@
 import type { GameState, GamePhase, PlayerAction, TurnResult, Player, Territory, Continent } from 'engine';
+import type { MajorEvent, TurnSnapshot } from './history.js';
 
 // ── Client → Server Messages ──
 
@@ -6,7 +7,16 @@ export interface NewGameMessage {
   type: 'new_game';
 }
 
-export type ClientMessage = NewGameMessage;
+export interface RequestHistoryMessage {
+  type: 'request_history';
+}
+
+export interface RequestTurnMessage {
+  type: 'request_turn';
+  turnNumber: number;
+}
+
+export type ClientMessage = NewGameMessage | RequestHistoryMessage | RequestTurnMessage;
 
 // ── Server → Client Messages ──
 
@@ -36,12 +46,27 @@ export interface ErrorMessage {
   message: string;
 }
 
+export interface HistoryMetaMessage {
+  type: 'history_meta';
+  totalTurns: number;
+  majorEvents: MajorEvent[];
+  playerNames: Record<string, { name: string; color: string }>;
+}
+
+export interface TurnSnapshotMessage {
+  type: 'turn_snapshot';
+  turnNumber: number;
+  snapshot: TurnSnapshot;
+}
+
 export type ServerMessage =
   | GameStateMessage
   | TurnResultMessage
   | ActionsAcknowledgedMessage
   | PlayerTurnEndedMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | HistoryMetaMessage
+  | TurnSnapshotMessage;
 
 // ── Serialization helpers ──
 // Maps and Sets can't be JSON-serialized, so we convert them
