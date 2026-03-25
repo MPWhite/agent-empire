@@ -8,7 +8,7 @@ import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import NewsFeed from "@/components/NewsFeed";
 import PlayerDetail from "@/components/PlayerDetail";
-import TimelineDrawer from "@/components/TimelineDrawer";
+import HistoryPlayer from "@/components/HistoryPlayer";
 
 export default function Home() {
   const { gameState, events, connected, newGame, sendMessage, onHistoryMeta, onTurnSnapshot } = useGameSocket();
@@ -18,6 +18,7 @@ export default function Home() {
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
   const [reports, setReports] = useState<AnalystReport[]>([]);
   const [pendingTurns, setPendingTurns] = useState(0);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
 
   const reportEngineRef = useRef(new ReportEngine(10));
   const processedEventsRef = useRef(0);
@@ -155,11 +156,6 @@ export default function Home() {
     ? history.historicalState
     : gameState;
 
-  // Focus region for zoom-to-conflict
-  const focusRegion = history.selectedEvent?.territoryIds?.length
-    ? { territoryIds: history.selectedEvent.territoryIds }
-    : null;
-
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {
       if (!gameState) return;
@@ -186,21 +182,21 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       {/* Header bar */}
-      <header className="flex items-center justify-between px-4 h-10 border-b border-zinc-800 bg-zinc-950 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between px-3 md:px-4 h-10 border-b border-zinc-800 bg-zinc-950 shrink-0">
+        <div className="flex items-center gap-2 md:gap-4">
           <h1 className="text-sm font-bold tracking-wide text-zinc-300 uppercase">
             Agent Empires
           </h1>
-          <div className="w-px h-4 bg-zinc-800" />
+          <div className="hidden md:block w-px h-4 bg-zinc-800" />
           <span className="text-zinc-500 text-xs font-mono">
-            TURN {gameState.turnNumber}
+            T{gameState.turnNumber}
           </span>
-          <span className="text-zinc-600 text-xs font-mono">
+          <span className="hidden md:inline text-zinc-600 text-xs font-mono">
             PHASE: {gameState.phase.toUpperCase()}
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Connection indicator */}
           <div className="flex items-center gap-1.5">
             <div
@@ -208,90 +204,113 @@ export default function Home() {
                 connected ? "bg-emerald-500" : "bg-red-500"
               }`}
             />
-            <span className="text-xs font-mono text-zinc-600 uppercase">
+            <span className="hidden md:inline text-xs font-mono text-zinc-600 uppercase">
               {connected ? "Live" : "Disconnected"}
             </span>
           </div>
-          <div className="w-px h-4 bg-zinc-800" />
-          <span className="text-xs font-mono text-zinc-600">
+          <div className="hidden md:block w-px h-4 bg-zinc-800" />
+          <span className="hidden md:inline text-xs font-mono text-zinc-600">
             AUTO 2s/turn
           </span>
-          <div className="w-px h-4 bg-zinc-800" />
+          <div className="hidden md:block w-px h-4 bg-zinc-800" />
           <button
             onClick={history.isActive ? history.closeTimeline : history.openTimeline}
-            className={`text-xs font-mono px-2 py-1 border transition-colors ${
+            className={`text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border transition-colors ${
               history.isActive
                 ? "text-amber-400 border-amber-800 hover:border-amber-700"
                 : "text-zinc-600 hover:text-zinc-400 border-zinc-800 hover:border-zinc-700"
             }`}
           >
-            {history.isActive ? "CLOSE HISTORY" : "VIEW HISTORY"}
+            {history.isActive ? "CLOSE" : "HISTORY"}
           </button>
           <button
             onClick={newGame}
-            className="text-zinc-600 hover:text-zinc-400 text-xs font-mono px-2 py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
+            className="text-zinc-600 hover:text-zinc-400 text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
           >
-            NEW GAME
+            NEW
           </button>
         </div>
       </header>
 
-      {/* Map — full width, takes remaining vertical space */}
-      <div className="flex-1 relative overflow-hidden">
-        <GameMap
-          gameState={displayState!}
-          highlightPlayerId={selectedPlayerId}
-          onTerritoryClick={handleTerritoryClick}
-          onTerritoryHover={setHoveredTerritory}
-          hoveredTerritory={hoveredTerritory}
-          focusRegion={focusRegion}
-        />
-      </div>
+      {/* Main content area — column on mobile/medium, row on 2xl */}
+      <div className="flex-1 flex flex-col 2xl:flex-row overflow-hidden">
+        {/* Map — full width, takes remaining vertical space */}
+        <div className="flex-1 relative overflow-hidden">
+          <GameMap
+            gameState={displayState!}
+            highlightPlayerId={selectedPlayerId}
+            onTerritoryClick={handleTerritoryClick}
+            onTerritoryHover={setHoveredTerritory}
+            hoveredTerritory={hoveredTerritory}
+            focusRegion={null}
+          />
+        </div>
 
-      {/* Bottom panel — timeline drawer, news feed, or player detail */}
-      <div className="shrink-0 border-t border-zinc-800 bg-zinc-950">
-        {history.isActive ? (
-          <TimelineDrawer
-            majorEvents={history.majorEvents}
-            totalTurns={history.totalTurns}
-            currentLiveTurn={gameState.turnNumber}
-            viewingTurn={history.viewingTurn}
-            selectedEvent={history.selectedEvent}
-            players={gameState.players}
-            onSelectEvent={history.selectEvent}
-            onGoToTurn={history.goToTurn}
-            onGoToLive={history.goToLive}
-            onClose={history.closeTimeline}
-          />
-        ) : gameState.phase === "finished" && !selectedPlayerId ? (
-          <div className="flex items-center justify-center gap-4 py-4">
-            <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
-              Game Over
+        {/* Panel — bottom drawer on mobile/medium, right sidebar on 2xl */}
+        <div className={`shrink-0 border-t 2xl:border-t-0 2xl:border-l border-zinc-800 bg-zinc-950 md:h-80 2xl:h-auto 2xl:w-96 overflow-hidden ${bottomPanelOpen ? "h-[50vh]" : "h-auto"}`}>
+          {/* Mobile toggle bar */}
+          <button
+            className="flex md:hidden items-center justify-between w-full px-3 py-2 border-b border-zinc-800"
+            onClick={() => setBottomPanelOpen((prev) => !prev)}
+          >
+            <span className="flex items-center gap-2 text-xs font-mono text-zinc-500 uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              War Desk
             </span>
-            <button
-              onClick={newGame}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-medium py-1.5 px-4 transition-colors"
+            <svg
+              className={`w-3.5 h-3.5 text-zinc-600 transition-transform ${bottomPanelOpen ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
             >
-              NEW GAME
-            </button>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+
+          {history.isActive && (
+            <HistoryPlayer
+              totalTurns={history.totalTurns}
+              currentLiveTurn={gameState.turnNumber}
+              viewingTurn={history.viewingTurn}
+              onGoToTurn={history.goToTurn}
+              onGoToLive={history.goToLive}
+              onClose={history.closeTimeline}
+            />
+          )}
+
+          <div className={`${bottomPanelOpen ? "h-[calc(50vh-36px)]" : "h-0"} md:h-full overflow-hidden`}>
+            {gameState.phase === "finished" && !selectedPlayerId ? (
+              <div className="flex items-center justify-center gap-4 py-4">
+                <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
+                  Game Over
+                </span>
+                <button
+                  onClick={newGame}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-medium py-1.5 px-4 transition-colors"
+                >
+                  NEW GAME
+                </button>
+              </div>
+            ) : selectedPlayerId ? (
+              <PlayerDetail
+                playerId={selectedPlayerId}
+                gameState={gameState}
+                reports={reports}
+                onClose={() => setSelectedPlayerId(null)}
+              />
+            ) : (
+              <NewsFeed
+                reports={reports}
+                gameState={gameState}
+                onPlayerClick={setSelectedPlayerId}
+                selectedPlayerId={selectedPlayerId}
+                currentTurn={gameState.turnNumber}
+                pendingTurns={pendingTurns}
+              />
+            )}
           </div>
-        ) : selectedPlayerId ? (
-          <PlayerDetail
-            playerId={selectedPlayerId}
-            gameState={gameState}
-            reports={reports}
-            onClose={() => setSelectedPlayerId(null)}
-          />
-        ) : (
-          <NewsFeed
-            reports={reports}
-            gameState={gameState}
-            onPlayerClick={setSelectedPlayerId}
-            selectedPlayerId={selectedPlayerId}
-            currentTurn={gameState.turnNumber}
-            pendingTurns={pendingTurns}
-          />
-        )}
+        </div>
       </div>
     </div>
   );
