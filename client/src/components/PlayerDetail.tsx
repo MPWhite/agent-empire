@@ -55,15 +55,15 @@ export default function PlayerDetail({
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="sticky top-0 flex items-center justify-between px-3 py-1.5 border-b border-zinc-800 bg-zinc-950 z-10 shrink-0">
+        <div className="flex items-center gap-2">
           <div
-            className="w-3 h-3"
+            className="w-2.5 h-2.5"
             style={{ backgroundColor: player.color }}
           />
-          <span className="text-sm font-bold font-mono text-zinc-200 uppercase tracking-wide">
+          <span className="text-xs font-bold font-mono text-zinc-200 uppercase tracking-wide">
             {player.name}
           </span>
           {player.isAlive ? (
@@ -85,9 +85,9 @@ export default function PlayerDetail({
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col md:grid md:grid-cols-[auto_1fr] divide-y md:divide-y-0 md:divide-x divide-zinc-800 overflow-hidden">
+      <div className="flex-1 flex flex-col divide-y divide-zinc-800 overflow-auto">
         {/* Stats panel */}
-        <div className="w-full md:w-56 p-3 overflow-y-auto panel-scroll shrink-0">
+        <div className="w-full p-3 shrink-0">
           <h4 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3 font-mono">
             Intelligence
           </h4>

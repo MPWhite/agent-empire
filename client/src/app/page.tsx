@@ -7,7 +7,6 @@ import { ReportEngine } from "@/lib/report-engine";
 import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import NewsFeed from "@/components/NewsFeed";
-import PlayerDetail from "@/components/PlayerDetail";
 import HistoryPlayer from "@/components/HistoryPlayer";
 
 export default function Home() {
@@ -19,6 +18,45 @@ export default function Home() {
   const [reports, setReports] = useState<AnalystReport[]>([]);
   const [pendingTurns, setPendingTurns] = useState(0);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
+  const [drawerHeight, setDrawerHeight] = useState(320);
+  const isDragging = useRef(false);
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(0);
+
+  const handleDragStart = useCallback((clientY: number) => {
+    isDragging.current = true;
+    dragStartY.current = clientY;
+    dragStartHeight.current = drawerHeight;
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+  }, [drawerHeight]);
+
+  useEffect(() => {
+    const handleMove = (clientY: number) => {
+      if (!isDragging.current) return;
+      const delta = dragStartY.current - clientY;
+      const maxH = window.innerHeight * 0.8;
+      setDrawerHeight(Math.min(maxH, Math.max(120, dragStartHeight.current + delta)));
+    };
+    const handleEnd = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    const onMouseMove = (e: MouseEvent) => handleMove(e.clientY);
+    const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientY);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", onTouchMove);
+    window.addEventListener("touchend", handleEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", handleEnd);
+    };
+  }, []);
 
   const reportEngineRef = useRef(new ReportEngine(10));
   const processedEventsRef = useRef(0);
@@ -247,11 +285,35 @@ export default function Home() {
         </div>
 
         {/* Panel — bottom drawer on mobile/medium, right sidebar on 2xl */}
-        <div className={`shrink-0 border-t 2xl:border-t-0 2xl:border-l border-zinc-800 bg-zinc-950 md:h-80 2xl:h-auto 2xl:w-96 overflow-hidden ${bottomPanelOpen ? "h-[50vh]" : "h-auto"}`}>
-          {/* Mobile toggle bar */}
+        <div
+          className={`shrink-0 flex flex-col border-t 2xl:border-t-0 2xl:border-l border-zinc-800 bg-zinc-950 2xl:!h-auto 2xl:w-96 overflow-hidden ${!bottomPanelOpen ? "max-md:!h-auto" : ""}`}
+          style={{ height: drawerHeight }}
+        >
+          {/* Drag handle — visible on md+ */}
+          <div
+            className="hidden md:flex items-center justify-center h-2 cursor-row-resize group 2xl:hidden"
+            onMouseDown={(e) => handleDragStart(e.clientY)}
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          >
+            <div className="w-8 h-0.5 rounded-full bg-zinc-700 group-hover:bg-zinc-500 group-active:bg-zinc-400 transition-colors" />
+          </div>
+          {/* Mobile: drag handle when open, toggle bar when closed */}
+          {bottomPanelOpen && (
+            <div
+              className="flex md:hidden items-center justify-center h-3 cursor-row-resize"
+              onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            >
+              <div className="w-8 h-0.5 rounded-full bg-zinc-700" />
+            </div>
+          )}
           <button
             className="flex md:hidden items-center justify-between w-full px-3 py-2 border-b border-zinc-800"
-            onClick={() => setBottomPanelOpen((prev) => !prev)}
+            onClick={() => {
+              setBottomPanelOpen((prev) => {
+                if (!prev) setDrawerHeight(Math.max(drawerHeight, 300));
+                return !prev;
+              });
+            }}
           >
             <span className="flex items-center gap-2 text-xs font-mono text-zinc-500 uppercase tracking-widest">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
@@ -279,7 +341,7 @@ export default function Home() {
             />
           )}
 
-          <div className={`${bottomPanelOpen ? "h-[calc(50vh-36px)]" : "h-0"} md:h-full overflow-hidden`}>
+          <div className={`${bottomPanelOpen ? "flex-1" : "h-0"} md:flex-1 overflow-hidden`}>
             {gameState.phase === "finished" && !selectedPlayerId ? (
               <div className="flex items-center justify-center gap-4 py-4">
                 <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
@@ -292,13 +354,6 @@ export default function Home() {
                   NEW GAME
                 </button>
               </div>
-            ) : selectedPlayerId ? (
-              <PlayerDetail
-                playerId={selectedPlayerId}
-                gameState={gameState}
-                reports={reports}
-                onClose={() => setSelectedPlayerId(null)}
-              />
             ) : (
               <NewsFeed
                 reports={reports}
@@ -307,6 +362,7 @@ export default function Home() {
                 selectedPlayerId={selectedPlayerId}
                 currentTurn={gameState.turnNumber}
                 pendingTurns={pendingTurns}
+                onClosePlayer={() => setSelectedPlayerId(null)}
               />
             )}
           </div>
