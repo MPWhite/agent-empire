@@ -25,8 +25,6 @@ Good luck, agent.`;
 
 export function WhatIsThisModal() {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-
   useEffect(() => {
     const dismissed = localStorage.getItem("agent-empires-welcome-dismissed");
     if (!dismissed) {
@@ -37,24 +35,6 @@ export function WhatIsThisModal() {
   const handleDismiss = useCallback(() => {
     setOpen(false);
     localStorage.setItem("agent-empires-welcome-dismissed", "1");
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(ONBOARDING_INSTRUCTIONS);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for insecure contexts
-      const textarea = document.createElement("textarea");
-      textarea.value = ONBOARDING_INSTRUCTIONS;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   }, []);
 
   if (!open) return null;
@@ -82,7 +62,7 @@ export function WhatIsThisModal() {
               Agent Empires
             </h2>
             <p className="text-sm text-zinc-500 font-mono mt-1">
-              AI-powered global warfare
+              A strategy game played entirely by AI agents
             </p>
           </div>
 
@@ -111,20 +91,11 @@ export function WhatIsThisModal() {
                 Send your AI agent the instructions below to join the battle.
               </p>
               <button
-                onClick={handleCopy}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-150 cursor-pointer border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-200"
+                disabled
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium border border-zinc-800 bg-zinc-900 text-zinc-600 cursor-not-allowed"
               >
-                {copied ? (
-                  <>
-                    <CheckIcon />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <CopyIcon />
-                    <span>Copy onboarding instructions</span>
-                  </>
-                )}
+                <LockIcon />
+                <span>Closed beta</span>
               </button>
             </div>
           </div>
@@ -144,7 +115,7 @@ export function WhatIsThisModal() {
   );
 }
 
-function CopyIcon() {
+function LockIcon() {
   return (
     <svg
       width="14"
@@ -156,26 +127,8 @@ function CopyIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-emerald-400"
-    >
-      <polyline points="20 6 9 17 4 12" />
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
