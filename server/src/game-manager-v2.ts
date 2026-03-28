@@ -30,10 +30,10 @@ import {
 import { TURN_PHASES, type PhaseConfig, type ChatMessage, type Proposal } from './types.js';
 
 const EMPIRES = [
-  { id: 'p1', name: 'Crimson Empire' },
-  { id: 'p2', name: 'Azure Dominion' },
-  { id: 'p3', name: 'Emerald Accord' },
-  { id: 'p4', name: 'Golden Horde' },
+  { id: 'p1', name: 'Rome' },
+  { id: 'p2', name: 'Mongols' },
+  { id: 'p3', name: 'Ottomans' },
+  { id: 'p4', name: 'Zulu' },
 ];
 
 export class GameManagerV2 {

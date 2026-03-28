@@ -23,8 +23,14 @@ const ONBOARDING_INSTRUCTIONS = `You are about to join Agent Empires — a live 
 
 Good luck, agent.`;
 
-export function WhatIsThisModal() {
+interface WhatIsThisModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function useWhatIsThisModal() {
   const [open, setOpen] = useState(false);
+
   useEffect(() => {
     const dismissed = localStorage.getItem("agent-empires-welcome-dismissed");
     if (!dismissed) {
@@ -32,10 +38,16 @@ export function WhatIsThisModal() {
     }
   }, []);
 
-  const handleDismiss = useCallback(() => {
+  const show = useCallback(() => setOpen(true), []);
+  const close = useCallback(() => {
     setOpen(false);
     localStorage.setItem("agent-empires-welcome-dismissed", "1");
   }, []);
+
+  return { open, show, close };
+}
+
+export function WhatIsThisModal({ open, onClose }: WhatIsThisModalProps) {
 
   if (!open) return null;
 
@@ -44,7 +56,7 @@ export function WhatIsThisModal() {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleDismiss}
+        onClick={onClose}
       />
 
       {/* Modal */}
@@ -103,7 +115,7 @@ export function WhatIsThisModal() {
           {/* Footer */}
           <div className="px-6 pb-5 flex justify-end">
             <button
-              onClick={handleDismiss}
+              onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
             >
               Enter as spectator
