@@ -11,6 +11,7 @@ import HistoryPlayer from "@/components/HistoryPlayer";
 import { CommandBar } from "@/components/CommandBar";
 import { SidePanel } from "@/components/SidePanel";
 import { BreakingTicker } from "@/components/BreakingTicker";
+import { MiniLeaderboard } from "@/components/MiniLeaderboard";
 import { WhatIsThisModal } from "@/components/WhatIsThisModal";
 
 
@@ -178,7 +179,6 @@ export default function Home() {
         connected={connected}
         historyActive={history.isActive}
         onToggleHistory={history.isActive ? history.closeTimeline : history.openTimeline}
-        onNewGame={newGame}
       />
 
       {/* History player overlay */}
@@ -207,6 +207,13 @@ export default function Home() {
           />
           {/* Breaking news ticker overlay */}
           <BreakingTicker reports={reports} />
+          {/* Mini leaderboard when nothing selected and no hover tooltip */}
+          {!selectedPlayerId && !hoveredTerritory && (
+            <MiniLeaderboard
+              gameState={gameState}
+              onPlayerClick={setSelectedPlayerId}
+            />
+          )}
         </div>
 
         {/* Side Panel: INTEL + COMMS tabs */}
