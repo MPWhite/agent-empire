@@ -194,13 +194,15 @@ export default function Home() {
     );
   }
 
-  const isTeamPlay = (gameState.totalAgents ?? 0) > 0 || turnPhase !== null;
+  // Show team UI when connected to the new server (agentCounts field present)
+  // or always show it since it's the primary spectator content
+  const hasTeamData = gameState.agentCounts !== undefined;
 
   // ── Game UI ──
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       {/* Phase Timer (new: visible when team play is active) */}
-      {isTeamPlay && (
+      {hasTeamData && (
         <PhaseTimer
           turnNumber={gameState.turnNumber}
           turnPhase={turnPhase}
@@ -217,7 +219,7 @@ export default function Home() {
           </h1>
           <div className="hidden md:block w-px h-4 bg-zinc-800" />
           <span className="text-zinc-500 text-xs font-mono">T{gameState.turnNumber}</span>
-          {!isTeamPlay && (
+          {!hasTeamData && (
             <span className="hidden md:inline text-zinc-600 text-xs font-mono">
               PHASE: {gameState.phase.toUpperCase()}
             </span>
@@ -266,7 +268,7 @@ export default function Home() {
       {/* Main content: Chat | Map | War Desk */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Team Chat panel (left, visible when team play active) */}
-        {isTeamPlay && (
+        {hasTeamData && (
           <div className="lg:w-[380px] xl:w-[440px] h-48 lg:h-auto shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-800">
             <TeamChatPanel
               players={gameState.players}
