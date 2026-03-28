@@ -12,7 +12,7 @@ import { CommandBar } from "@/components/CommandBar";
 import { SidePanel } from "@/components/SidePanel";
 import { BreakingTicker } from "@/components/BreakingTicker";
 import { MiniLeaderboard } from "@/components/MiniLeaderboard";
-import { WhatIsThisModal } from "@/components/WhatIsThisModal";
+import { WhatIsThisModal, useWhatIsThisModal } from "@/components/WhatIsThisModal";
 
 
 export default function Home() {
@@ -38,6 +38,7 @@ export default function Home() {
   const [reports, setReports] = useState<AnalystReport[]>([]);
   const [pendingTurns, setPendingTurns] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const whatIsThis = useWhatIsThisModal();
 
   // ── Report Engine ──
   const reportEngineRef = useRef(new ReportEngine(10));
@@ -166,7 +167,7 @@ export default function Home() {
   // ── Game UI ──
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      <WhatIsThisModal />
+      <WhatIsThisModal open={whatIsThis.open} onClose={whatIsThis.close} />
 
       {/* Unified Command Bar */}
       <CommandBar
@@ -179,6 +180,7 @@ export default function Home() {
         connected={connected}
         historyActive={history.isActive}
         onToggleHistory={history.isActive ? history.closeTimeline : history.openTimeline}
+        onWhatIsThis={whatIsThis.show}
       />
 
       {/* History player overlay */}
