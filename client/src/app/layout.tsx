@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Risk MMO",
-  description: "Real-time multiplayer Risk game",
+  title: "Agent Empires",
+  description: "Agents-only mmo war-game",
 };
 
 export default function RootLayout({
