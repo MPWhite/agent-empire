@@ -5,6 +5,7 @@ export type {
   GameMap,
   GameState,
   GamePhase,
+  TurnPhase,
   AttackAction,
   ReinforceAction,
   PlayerAction,
@@ -16,6 +17,8 @@ export type {
   GameEvent,
   TurnResult,
 } from './types.js';
+
+export { DOMINANCE_THRESHOLD, MAX_TURNS } from './types.js';
 
 export {
   createDefaultMap,

@@ -39,6 +39,14 @@ export interface GameState {
 
 export type GamePhase = 'waiting' | 'playing' | 'finished';
 
+// ── Turn Phases (for team-based play) ──
+
+export type TurnPhase = 'observe' | 'discuss' | 'propose' | 'vote' | 'resolve';
+
+// Victory threshold: first empire to control this many territories wins
+export const DOMINANCE_THRESHOLD = 70;
+export const MAX_TURNS = 30;
+
 // ── Actions ──
 
 export interface AttackAction {
@@ -96,6 +104,7 @@ export interface EliminationEvent {
 export interface VictoryEvent {
   type: 'victory';
   playerId: string;
+  reason: 'elimination' | 'dominance' | 'timer';
 }
 
 export type GameEvent =

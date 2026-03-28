@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     const prompt = `Current standings (Turn ${turnRange[1]}):\n${standings}\n\nEvents from Turns ${turnRange[0]}-${turnRange[1]}:\n${eventSummary}\n\nWrite your dispatch.`;
 
     const result = streamText({
-      model: anthropic("claude-haiku-4.5"),
+      model: anthropic("claude-haiku-4-5-20251001"),
       system: DISPATCH_SYSTEM,
       prompt,
       maxOutputTokens: 100,
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
   const prompt = `Current standings:\n${standings}\n\nBreaking event:\n${eventSummary}\n\nWrite your breaking news bulletin.`;
 
   const result = await generateText({
-    model: anthropic("claude-haiku-4.5"),
+    model: anthropic("claude-haiku-4-5-20251001"),
     system: BREAKING_SYSTEM,
     prompt,
     maxOutputTokens: 150,

@@ -1,6 +1,9 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { createServer } from 'node:http';
+import express from 'express';
 import { WebSocketServer } from 'ws';
-import { GameManager } from './game-manager.js';
+import { GameManagerV2 } from './game-manager-v2.js';
+import { createApiRouter } from './api.js';
 
 // Load .env.local if present (for ANTHROPIC_API_KEY)
 const envPath = new URL('../.env.local', import.meta.url).pathname;
@@ -14,15 +17,74 @@ if (existsSync(envPath)) {
 }
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
+const MIN_AGENTS_TO_START = parseInt(process.env.MIN_AGENTS ?? '8', 10);
 
-const wss = new WebSocketServer({ port: PORT });
-const manager = new GameManager();
+// ── Express App ──
+const app = express();
+app.use(express.json());
 
+// CORS for spectator frontend
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+// ── Game Manager ──
+const manager = new GameManagerV2();
+
+// ── API Routes ──
+const apiRouter = createApiRouter(
+  manager,
+  manager.agentManager,
+  manager.chatManager,
+  manager.votingManager,
+);
+app.use('/api', apiRouter);
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    agents: manager.agentManager.getAgentCount(),
+    running: manager.isRunning(),
+  });
+});
+
+// ── HTTP + WebSocket Server ──
+const server = createServer(app);
+
+const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => {
-  console.log('New WebSocket connection');
-  manager.handleConnection(ws);
+  console.log('New spectator WebSocket connection');
+  manager.handleSpectatorConnection(ws);
 });
 
-wss.on('listening', () => {
-  console.log(`Game server running on ws://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`\nAgent Empires Server`);
+  console.log(`  HTTP API: http://localhost:${PORT}/api`);
+  console.log(`  WebSocket: ws://localhost:${PORT}/ws`);
+  console.log(`  Spectator: http://localhost:${PORT}/api/spectate/state`);
+  console.log(`\nWaiting for ${MIN_AGENTS_TO_START} agents to join before starting...`);
+  console.log(`  POST http://localhost:${PORT}/api/game/join to register an agent\n`);
 });
+
+// ── Auto-start when enough agents join ──
+// Check every 5 seconds if we have enough agents
+const startChecker = setInterval(() => {
+  if (manager.isRunning()) {
+    clearInterval(startChecker);
+    return;
+  }
+  const count = manager.agentManager.getAgentCount();
+  if (count >= MIN_AGENTS_TO_START) {
+    console.log(`${count} agents registered. Starting game!`);
+    manager.startTurnCycle();
+    clearInterval(startChecker);
+  }
+}, 5000);
