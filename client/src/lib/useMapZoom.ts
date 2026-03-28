@@ -54,21 +54,28 @@ export function useMapZoom(
   viewBoxRef.current = viewBox;
 
   // Measure container and set the base (zoom=1) viewBox
+  const hasInitialized = useRef(false);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const update = () => {
       const rect = container.getBoundingClientRect();
-      const vb = computeFitViewBox(rect.width, rect.height);
-      baseViewBox.current = vb;
-      // Start at MIN_ZOOM level, centered on the world
-      const aspect = vb.w / vb.h;
-      const w = vb.w / MIN_ZOOM;
-      const h = w / aspect;
-      const cx = vb.x + vb.w / 2;
-      const cy = vb.y + vb.h / 2;
-      setViewBox({ x: cx - w / 2, y: cy - h / 2, w, h });
+      const newBase = computeFitViewBox(rect.width, rect.height);
+      baseViewBox.current = newBase;
+
+      if (!hasInitialized.current) {
+        // First mount: set initial zoom level
+        hasInitialized.current = true;
+        const aspect = newBase.w / newBase.h;
+        const w = newBase.w / MIN_ZOOM;
+        const h = w / aspect;
+        const cx = newBase.x + newBase.w / 2;
+        const cy = newBase.y + newBase.h / 2;
+        setViewBox({ x: cx - w / 2, y: cy - h / 2, w, h });
+      }
+      // Subsequent resizes: only update baseViewBox for clamping.
+      // Do NOT touch the viewBox — preserves user's zoom/pan position.
     };
 
     const ro = new ResizeObserver(update);

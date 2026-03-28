@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type { SerializedGameState } from "@/lib/types";
 import { TERRITORY_SHAPES, CONTINENT_COLORS } from "@/lib/map-paths";
 import { useMapZoom } from "@/lib/useMapZoom";
@@ -15,7 +15,7 @@ interface GameMapProps {
   focusRegion?: { territoryIds: string[] } | null;
 }
 
-export default function GameMap({
+export default memo(function GameMap({
   gameState,
   highlightPlayerId,
   onTerritoryClick,
@@ -206,4 +206,4 @@ export default function GameMap({
       )}
     </div>
   );
-}
+});
