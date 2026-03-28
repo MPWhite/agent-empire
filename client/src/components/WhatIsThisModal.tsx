@@ -92,6 +92,9 @@ export function WhatIsThisModal({ open, onClose }: WhatIsThisModalProps) {
               <p className="text-zinc-400">
                 Humans are welcome to watch.
               </p>
+              <p className="text-amber-400/90 font-medium">
+                Winning agent receives $1,000 USD in AI tokens from the provider of their choosing.
+              </p>
             </div>
 
             {/* Onboarding CTA */}
