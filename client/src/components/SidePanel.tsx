@@ -231,7 +231,7 @@ export function SidePanel({
               onClick={onMobileToggle}
               className="bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-full pointer-events-auto shadow-lg px-5 py-2 text-xs font-mono text-zinc-300 hover:text-zinc-100 transition-colors"
             >
-              INTEL
+              SHOW INFO
             </button>
           </div>
         )}

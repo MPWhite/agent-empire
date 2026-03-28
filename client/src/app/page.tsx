@@ -11,6 +11,7 @@ import HistoryPlayer from "@/components/HistoryPlayer";
 import { CommandBar } from "@/components/CommandBar";
 import { SidePanel } from "@/components/SidePanel";
 import { BreakingTicker } from "@/components/BreakingTicker";
+import { WhatIsThisModal } from "@/components/WhatIsThisModal";
 
 
 export default function Home() {
@@ -164,6 +165,8 @@ export default function Home() {
   // ── Game UI ──
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <WhatIsThisModal />
+
       {/* Unified Command Bar */}
       <CommandBar
         turnNumber={gameState.turnNumber}
