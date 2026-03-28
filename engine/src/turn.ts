@@ -7,6 +7,7 @@ import type {
   TurnResult,
   Territory,
 } from './types.js';
+import { DOMINANCE_THRESHOLD, MAX_TURNS } from './types.js';
 import { validateAction, validateAttackDuringResolution } from './validation.js';
 import { resolveCombat, createBattleEvent } from './combat.js';
 import { calculateReinforcements } from './reinforcements.js';
@@ -198,13 +199,51 @@ export function resolveTurn(
     }
   }
 
-  // 5. Check win condition
+  // 5. Check win conditions
   const alivePlayers = Array.from(newState.players.values()).filter((p) => p.isAlive);
+
+  // 5a. Elimination victory: last player standing
   if (alivePlayers.length === 1) {
     newState.phase = 'finished';
     events.push({
       type: 'victory',
       playerId: alivePlayers[0].id,
+      reason: 'elimination',
+    });
+  }
+
+  // 5b. Dominance victory: first to DOMINANCE_THRESHOLD territories
+  if (newState.phase !== 'finished') {
+    for (const player of alivePlayers) {
+      const territories = getPlayerTerritories(newState.map, player.id);
+      if (territories.length >= DOMINANCE_THRESHOLD) {
+        newState.phase = 'finished';
+        events.push({
+          type: 'victory',
+          playerId: player.id,
+          reason: 'dominance',
+        });
+        break;
+      }
+    }
+  }
+
+  // 5c. Timer victory: most territories after MAX_TURNS
+  if (newState.phase !== 'finished' && state.turnNumber >= MAX_TURNS) {
+    let bestPlayer = alivePlayers[0];
+    let bestCount = 0;
+    for (const player of alivePlayers) {
+      const count = getPlayerTerritories(newState.map, player.id).length;
+      if (count > bestCount) {
+        bestCount = count;
+        bestPlayer = player;
+      }
+    }
+    newState.phase = 'finished';
+    events.push({
+      type: 'victory',
+      playerId: bestPlayer.id,
+      reason: 'timer',
     });
   }
 

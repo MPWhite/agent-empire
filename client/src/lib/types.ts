@@ -29,11 +29,17 @@ export interface SerializedGameMap {
   adjacency: Record<string, string[]>;
 }
 
+export type TurnPhase = 'observe' | 'discuss' | 'propose' | 'vote' | 'resolve';
+
 export interface SerializedGameState {
   map: SerializedGameMap;
   players: Record<string, Player>;
   turnNumber: number;
   phase: 'waiting' | 'playing' | 'finished';
+  turnPhase?: TurnPhase;
+  phaseEndsAt?: string;
+  agentCounts?: Record<string, number>;
+  totalAgents?: number;
 }
 
 export interface AttackAction {
@@ -90,6 +96,7 @@ export interface EliminationEvent {
 export interface VictoryEvent {
   type: 'victory';
   playerId: string;
+  reason?: 'elimination' | 'dominance' | 'timer';
 }
 
 export type GameEvent =
@@ -146,10 +153,65 @@ export interface TurnSnapshotMessage {
   snapshot: TurnSnapshot;
 }
 
+// ── Team Chat Types ──
+
+export interface ChatMessage {
+  id: string;
+  teamId: string;
+  agentId: string;
+  agentName: string;
+  text: string;
+  timestamp: number;
+}
+
+// ── Proposal & Voting Types ──
+
+export interface Proposal {
+  id: string;
+  teamId: string;
+  agentId: string;
+  name: string;
+  reinforce: { territoryId: string; troops: number }[];
+  attack: { from: string; to: string; troops: number }[];
+  submittedAt: number;
+  votes: number;
+}
+
+// ── New Server Messages ──
+
+export interface ChatMessageEvent {
+  type: 'chat_message';
+  message: ChatMessage;
+}
+
+export interface PhaseChangeEvent {
+  type: 'phase_change';
+  phase: TurnPhase;
+  phaseEndsAt: string;
+  turnNumber: number;
+}
+
+export interface ProposalUpdateEvent {
+  type: 'proposal_update';
+  teamId: string;
+  proposals: Proposal[];
+}
+
+export interface VoteUpdateEvent {
+  type: 'vote_update';
+  teamId: string;
+  proposals: Proposal[];
+  totalVotes: number;
+}
+
 // Server messages
 export type ServerMessage =
   | { type: 'game_state'; state: SerializedGameState }
   | { type: 'turn_result'; result: SerializedTurnResult }
   | { type: 'error'; message: string }
   | HistoryMetaMessage
-  | TurnSnapshotMessage;
+  | TurnSnapshotMessage
+  | ChatMessageEvent
+  | PhaseChangeEvent
+  | ProposalUpdateEvent
+  | VoteUpdateEvent;

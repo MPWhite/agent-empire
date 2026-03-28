@@ -8,17 +8,31 @@ import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import NewsFeed from "@/components/NewsFeed";
 import HistoryPlayer from "@/components/HistoryPlayer";
+import { TeamChatPanel } from "@/components/TeamChat";
+import { PhaseTimer } from "@/components/PhaseTimer";
 
 export default function Home() {
-  const { gameState, events, connected, newGame, sendMessage, onHistoryMeta, onTurnSnapshot } = useGameSocket();
+  const {
+    gameState,
+    events,
+    connected,
+    teamChats,
+    teamProposals,
+    turnPhase,
+    phaseEndsAt,
+    newGame,
+    sendMessage,
+    onHistoryMeta,
+    onTurnSnapshot,
+  } = useGameSocket();
+
   const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
   const [reports, setReports] = useState<AnalystReport[]>([]);
   const [pendingTurns, setPendingTurns] = useState(0);
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
-  const [drawerHeight, setDrawerHeight] = useState(320);
+  const [warDeskHeight, setWarDeskHeight] = useState(224);
   const isDragging = useRef(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
@@ -26,17 +40,17 @@ export default function Home() {
   const handleDragStart = useCallback((clientY: number) => {
     isDragging.current = true;
     dragStartY.current = clientY;
-    dragStartHeight.current = drawerHeight;
+    dragStartHeight.current = warDeskHeight;
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
-  }, [drawerHeight]);
+  }, [warDeskHeight]);
 
   useEffect(() => {
     const handleMove = (clientY: number) => {
       if (!isDragging.current) return;
       const delta = dragStartY.current - clientY;
-      const maxH = window.innerHeight * 0.8;
-      setDrawerHeight(Math.min(maxH, Math.max(120, dragStartHeight.current + delta)));
+      const maxH = window.innerHeight * 0.6;
+      setWarDeskHeight(Math.min(maxH, Math.max(80, dragStartHeight.current + delta)));
     };
     const handleEnd = () => {
       if (!isDragging.current) return;
@@ -58,11 +72,11 @@ export default function Home() {
     };
   }, []);
 
+  // ── Report Engine ──
   const reportEngineRef = useRef(new ReportEngine(10));
   const processedEventsRef = useRef(0);
   const reportIdRef = useRef(0);
 
-  // Process new events through the report engine
   useEffect(() => {
     if (!gameState || events.length <= processedEventsRef.current) return;
 
@@ -70,18 +84,11 @@ export default function Home() {
     processedEventsRef.current = events.length;
     const turnNumber = gameState.turnNumber - 1;
 
-    const trigger = reportEngineRef.current.addTurnEvents(
-      newEvents,
-      gameState,
-      turnNumber
-    );
-
-    // Track pending turns for UI
+    const trigger = reportEngineRef.current.addTurnEvents(newEvents, gameState, turnNumber);
     setPendingTurns(turnNumber % 10);
 
     if (!trigger) return;
 
-    // Generate report
     const reportId = `report-${++reportIdRef.current}`;
     const newReport: AnalystReport = {
       id: reportId,
@@ -94,8 +101,6 @@ export default function Home() {
 
     setReports((prev) => [...prev, newReport].slice(-50));
     reportEngineRef.current.markGenerating(true);
-
-    // Call the API
     fetchReport(trigger.mode, trigger.events, trigger.state, trigger.turnRange, reportId);
   }, [events, gameState]);
 
@@ -114,13 +119,9 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("Report API error:", res.status, errText);
         setReports((prev) =>
           prev.map((r) =>
-            r.id === reportId
-              ? { ...r, text: `[Report generation failed: ${res.status}]`, isStreaming: false }
-              : r
+            r.id === reportId ? { ...r, text: `[Report generation failed: ${res.status}]`, isStreaming: false } : r
           )
         );
         reportEngineRef.current.markGenerating(false);
@@ -128,47 +129,26 @@ export default function Home() {
       }
 
       if (mode === "dispatch" && res.body) {
-        // Stream the response
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let accumulated = "";
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
           const current = accumulated;
-          setReports((prev) =>
-            prev.map((r) =>
-              r.id === reportId ? { ...r, text: current } : r
-            )
-          );
+          setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, text: current } : r)));
         }
-
-        setReports((prev) =>
-          prev.map((r) =>
-            r.id === reportId ? { ...r, isStreaming: false } : r
-          )
-        );
+        setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, isStreaming: false } : r)));
       } else {
-        // Breaking: JSON response
         const data = await res.json();
         setReports((prev) =>
-          prev.map((r) =>
-            r.id === reportId
-              ? { ...r, text: data.text, isStreaming: false }
-              : r
-          )
+          prev.map((r) => (r.id === reportId ? { ...r, text: data.text, isStreaming: false } : r))
         );
       }
-    } catch (err) {
-      console.error("Report fetch error:", err);
+    } catch {
       setReports((prev) =>
-        prev.map((r) =>
-          r.id === reportId
-            ? { ...r, text: "[Failed to generate report]", isStreaming: false }
-            : r
-        )
+        prev.map((r) => (r.id === reportId ? { ...r, text: "[Failed to generate report]", isStreaming: false } : r))
       );
     } finally {
       reportEngineRef.current.markGenerating(false);
@@ -189,10 +169,8 @@ export default function Home() {
     prevTurnRef.current = gameState?.turnNumber;
   }, [gameState?.turnNumber, gameState]);
 
-  // History mode: which state should the map display?
-  const displayState = history.isActive && history.historicalState
-    ? history.historicalState
-    : gameState;
+  const displayState =
+    history.isActive && history.historicalState ? history.historicalState : gameState;
 
   const handleTerritoryClick = useCallback(
     (territoryId: string) => {
@@ -208,7 +186,7 @@ export default function Home() {
   // ── Loading state ──
   if (!gameState) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center h-screen">
         <div className="text-zinc-500 text-sm font-mono">
           {connected ? "LOADING GAME STATE..." : "CONNECTING TO SERVER..."}
         </div>
@@ -216,40 +194,43 @@ export default function Home() {
     );
   }
 
+  const isTeamPlay = (gameState.totalAgents ?? 0) > 0 || turnPhase !== null;
+
   // ── Game UI ──
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      {/* Header bar */}
+      {/* Phase Timer (new: visible when team play is active) */}
+      {isTeamPlay && (
+        <PhaseTimer
+          turnNumber={gameState.turnNumber}
+          turnPhase={turnPhase}
+          phaseEndsAt={phaseEndsAt}
+          totalAgents={gameState.totalAgents ?? 0}
+        />
+      )}
+
+      {/* Header */}
       <header className="flex items-center justify-between px-3 md:px-4 h-10 border-b border-zinc-800 bg-zinc-950 shrink-0">
         <div className="flex items-center gap-2 md:gap-4">
           <h1 className="text-sm font-bold tracking-wide text-zinc-300 uppercase">
             Agent Empires
           </h1>
           <div className="hidden md:block w-px h-4 bg-zinc-800" />
-          <span className="text-zinc-500 text-xs font-mono">
-            T{gameState.turnNumber}
-          </span>
-          <span className="hidden md:inline text-zinc-600 text-xs font-mono">
-            PHASE: {gameState.phase.toUpperCase()}
-          </span>
+          <span className="text-zinc-500 text-xs font-mono">T{gameState.turnNumber}</span>
+          {!isTeamPlay && (
+            <span className="hidden md:inline text-zinc-600 text-xs font-mono">
+              PHASE: {gameState.phase.toUpperCase()}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Connection indicator */}
           <div className="flex items-center gap-1.5">
-            <div
-              className={`w-1.5 h-1.5 ${
-                connected ? "bg-emerald-500" : "bg-red-500"
-              }`}
-            />
+            <div className={`w-1.5 h-1.5 ${connected ? "bg-emerald-500" : "bg-red-500"}`} />
             <span className="hidden md:inline text-xs font-mono text-zinc-600 uppercase">
               {connected ? "Live" : "Disconnected"}
             </span>
           </div>
-          <div className="hidden md:block w-px h-4 bg-zinc-800" />
-          <span className="hidden md:inline text-xs font-mono text-zinc-600">
-            AUTO 2s/turn
-          </span>
           <div className="hidden md:block w-px h-4 bg-zinc-800" />
           <button
             onClick={history.isActive ? history.closeTimeline : history.openTimeline}
@@ -270,80 +251,58 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main content area — column on mobile/medium, row on 2xl */}
-      <div className="flex-1 flex flex-col 2xl:flex-row overflow-hidden">
-        {/* Map — full width, takes remaining vertical space */}
-        <div className="flex-1 relative overflow-hidden">
-          <GameMap
-            gameState={displayState!}
-            highlightPlayerId={selectedPlayerId}
-            onTerritoryClick={handleTerritoryClick}
-            onTerritoryHover={setHoveredTerritory}
-            hoveredTerritory={hoveredTerritory}
-            focusRegion={null}
-          />
-        </div>
+      {/* History player overlay */}
+      {history.isActive && (
+        <HistoryPlayer
+          totalTurns={history.totalTurns}
+          currentLiveTurn={gameState.turnNumber}
+          viewingTurn={history.viewingTurn}
+          onGoToTurn={history.goToTurn}
+          onGoToLive={history.goToLive}
+          onClose={history.closeTimeline}
+        />
+      )}
 
-        {/* Panel — bottom drawer on mobile/medium, right sidebar on 2xl */}
-        <div
-          className={`shrink-0 flex flex-col border-t 2xl:border-t-0 2xl:border-l border-zinc-800 bg-zinc-950 2xl:!h-auto 2xl:w-96 overflow-hidden ${!bottomPanelOpen ? "max-md:!h-auto" : ""}`}
-          style={{ height: drawerHeight }}
-        >
-          {/* Drag handle — visible on md+ */}
-          <div
-            className="hidden md:flex items-center justify-center h-2 cursor-row-resize group 2xl:hidden"
-            onMouseDown={(e) => handleDragStart(e.clientY)}
-            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-          >
-            <div className="w-8 h-0.5 rounded-full bg-zinc-700 group-hover:bg-zinc-500 group-active:bg-zinc-400 transition-colors" />
+      {/* Main content: Chat | Map | War Desk */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Team Chat panel (left, visible when team play active) */}
+        {isTeamPlay && (
+          <div className="lg:w-[380px] xl:w-[440px] h-48 lg:h-auto shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-800">
+            <TeamChatPanel
+              players={gameState.players}
+              teamChats={teamChats}
+              teamProposals={teamProposals}
+              agentCounts={gameState.agentCounts ?? {}}
+            />
           </div>
-          {/* Mobile: drag handle when open, toggle bar when closed */}
-          {bottomPanelOpen && (
+        )}
+
+        {/* Center: Map + War Desk */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Map */}
+          <div className="flex-1 relative overflow-hidden">
+            <GameMap
+              gameState={displayState!}
+              highlightPlayerId={selectedPlayerId}
+              onTerritoryClick={handleTerritoryClick}
+              onTerritoryHover={setHoveredTerritory}
+              hoveredTerritory={hoveredTerritory}
+              focusRegion={null}
+            />
+          </div>
+
+          {/* War Desk (bottom, resizable) */}
+          <div className="shrink-0 border-t border-zinc-800 overflow-hidden flex flex-col" style={{ height: warDeskHeight }}>
+            {/* Drag handle */}
             <div
-              className="flex md:hidden items-center justify-center h-3 cursor-row-resize"
+              className="flex items-center justify-center h-2 cursor-row-resize group"
+              onMouseDown={(e) => handleDragStart(e.clientY)}
               onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
             >
-              <div className="w-8 h-0.5 rounded-full bg-zinc-700" />
+              <div className="w-8 h-0.5 rounded-full bg-zinc-700 group-hover:bg-zinc-500 group-active:bg-zinc-400 transition-colors" />
             </div>
-          )}
-          <button
-            className="flex md:hidden items-center justify-between w-full px-3 py-2 border-b border-zinc-800"
-            onClick={() => {
-              setBottomPanelOpen((prev) => {
-                if (!prev) setDrawerHeight(Math.max(drawerHeight, 300));
-                return !prev;
-              });
-            }}
-          >
-            <span className="flex items-center gap-2 text-xs font-mono text-zinc-500 uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-              War Desk
-            </span>
-            <svg
-              className={`w-3.5 h-3.5 text-zinc-600 transition-transform ${bottomPanelOpen ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-
-          {history.isActive && (
-            <HistoryPlayer
-              totalTurns={history.totalTurns}
-              currentLiveTurn={gameState.turnNumber}
-              viewingTurn={history.viewingTurn}
-              onGoToTurn={history.goToTurn}
-              onGoToLive={history.goToLive}
-              onClose={history.closeTimeline}
-            />
-          )}
-
-          <div className={`${bottomPanelOpen ? "flex-1" : "h-0"} md:flex-1 overflow-hidden`}>
             {gameState.phase === "finished" && !selectedPlayerId ? (
-              <div className="flex items-center justify-center gap-4 py-4">
+              <div className="flex items-center justify-center gap-4 h-full">
                 <span className="text-amber-500 font-mono font-bold text-sm uppercase tracking-wider">
                   Game Over
                 </span>
