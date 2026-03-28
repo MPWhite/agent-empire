@@ -81,7 +81,7 @@ export function SidePanel({
   const selectedPlayer = selectedPlayerId ? players[selectedPlayerId] : null;
 
   const panelContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Leaderboard — always visible at top */}
       <div className="overflow-y-auto panel-scroll shrink-0 max-h-48 border-b border-zinc-800">
         <PlayerLeaderboard
@@ -190,7 +190,7 @@ export function SidePanel({
   return (
     <>
       {/* Desktop side panel */}
-      <div className="hidden lg:flex flex-col w-[340px] xl:w-[380px] border-l border-zinc-800 bg-zinc-950 h-full shrink-0">
+      <div className="hidden lg:flex flex-col w-[340px] xl:w-[380px] border-l border-zinc-800 bg-zinc-950 h-full shrink-0 overflow-hidden">
         {panelContent}
       </div>
 
