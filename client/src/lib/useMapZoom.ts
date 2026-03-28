@@ -50,6 +50,8 @@ export function useMapZoom(
   const panStart = useRef({ x: 0, y: 0 });
   const panStartScreen = useRef({ x: 0, y: 0 });
   const wasPanning = useRef(false);
+  const lastPinchDist = useRef(0);
+  const pinchMid = useRef({ x: 0, y: 0 });
   const viewBoxRef = useRef(viewBox);
   viewBoxRef.current = viewBox;
 

@@ -47,7 +47,6 @@ interface CommandBarProps {
   connected: boolean;
   historyActive: boolean;
   onToggleHistory: () => void;
-  onNewGame: () => void;
 }
 
 export function CommandBar({
@@ -60,7 +59,6 @@ export function CommandBar({
   connected,
   historyActive,
   onToggleHistory,
-  onNewGame,
 }: CommandBarProps) {
   const [remaining, setRemaining] = useState("");
 
@@ -168,12 +166,6 @@ export function CommandBar({
           }`}
         >
           {historyActive ? "CLOSE" : "HISTORY"}
-        </button>
-        <button
-          onClick={onNewGame}
-          className="text-zinc-600 hover:text-zinc-400 text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
-        >
-          NEW
         </button>
       </div>
     </header>
