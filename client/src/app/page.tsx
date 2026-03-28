@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useGameSocket } from "@/lib/socket";
 import { useHistoryMode } from "@/lib/useHistoryMode";
 import { ReportEngine } from "@/lib/report-engine";
+import { useTurnHistory } from "@/lib/useTurnHistory";
 import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import HistoryPlayer from "@/components/HistoryPlayer";
@@ -28,6 +29,7 @@ export default function Home() {
   } = useGameSocket();
 
   const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
+  const turnHistory = useTurnHistory(gameState);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);
@@ -214,6 +216,8 @@ export default function Home() {
           onClosePlayer={() => setSelectedPlayerId(null)}
           onNewGame={newGame}
           hasTeamData={hasTeamData}
+          turnHistory={turnHistory.getHistory()}
+          deltas={turnHistory.deltas}
           teamChats={teamChats}
           teamProposals={teamProposals}
           agentCounts={gameState.agentCounts ?? {}}
