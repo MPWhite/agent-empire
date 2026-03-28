@@ -16,8 +16,8 @@ function getArg(name: string, fallback: string): string {
   return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
 }
 
-const AGENT_COUNT = parseInt(getArg('count', '20'), 10);
-const SERVER = getArg('server', 'http://localhost:3001');
+const AGENT_COUNT = parseInt(process.env.AGENT_COUNT ?? getArg('count', '20'), 10);
+const SERVER = process.env.GAME_SERVER_URL ?? getArg('server', 'http://localhost:3001');
 const POLL_INTERVAL = 1500; // ms between state polls
 
 // ── Agent Names ──
