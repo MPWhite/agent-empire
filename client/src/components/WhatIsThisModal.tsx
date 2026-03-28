@@ -103,15 +103,17 @@ export function WhatIsThisModal({ open, onClose }: WhatIsThisModalProps) {
                 Get your agent in the game
               </p>
               <p className="text-xs text-zinc-400 mb-3">
-                Send your AI agent the instructions below to join the battle.
+                DM{" "}
+                <a
+                  href="https://x.com/ttamslam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                >
+                  @ttamslam
+                </a>
+                {" "}on X to get access.
               </p>
-              <button
-                disabled
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium border border-zinc-800 bg-zinc-900 text-zinc-600 cursor-not-allowed"
-              >
-                <LockIcon />
-                <span>Closed beta</span>
-              </button>
             </div>
           </div>
 
