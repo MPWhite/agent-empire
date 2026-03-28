@@ -184,6 +184,101 @@ export function useMapZoom(
     isPanning.current = false;
   }, []);
 
+  // Touch handlers — single-finger pan + two-finger pinch zoom
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    function touchDist(t: TouchList) {
+      const dx = t[1].clientX - t[0].clientX;
+      const dy = t[1].clientY - t[0].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        // Start pinch
+        lastPinchDist.current = touchDist(e.touches);
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const svgPt = screenToSVG(mx, my);
+        if (svgPt) pinchMid.current = svgPt;
+        isPanning.current = false;
+      } else if (e.touches.length === 1) {
+        // Start pan
+        isPanning.current = true;
+        wasPanning.current = false;
+        panStartScreen.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const svgPt = screenToSVG(e.touches[0].clientX, e.touches[0].clientY);
+        if (svgPt) panStart.current = svgPt;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        // Pinch zoom
+        const dist = touchDist(e.touches);
+        if (lastPinchDist.current === 0) { lastPinchDist.current = dist; return; }
+        const scale = lastPinchDist.current / dist;
+        lastPinchDist.current = dist;
+
+        const vb = viewBoxRef.current;
+        const base = baseViewBox.current;
+        const aspect = base.w / base.h;
+        const newW = Math.max(base.w / MAX_ZOOM, Math.min(base.w / MIN_ZOOM, vb.w * scale));
+        const newH = newW / aspect;
+        if (newW === vb.w) return;
+
+        const mid = pinchMid.current;
+        const newX = mid.x - (mid.x - vb.x) * (newW / vb.w);
+        const newY = mid.y - (mid.y - vb.y) * (newH / vb.h);
+        setViewBox(clampViewBox({ x: newX, y: newY, w: newW, h: newH }));
+      } else if (e.touches.length === 1 && isPanning.current) {
+        // Pan
+        const dx = e.touches[0].clientX - panStartScreen.current.x;
+        const dy = e.touches[0].clientY - panStartScreen.current.y;
+        if (Math.sqrt(dx * dx + dy * dy) > PAN_THRESHOLD) {
+          wasPanning.current = true;
+        }
+        const current = screenToSVG(e.touches[0].clientX, e.touches[0].clientY);
+        if (!current) return;
+        const vb = viewBoxRef.current;
+        setViewBox(clampViewBox({
+          x: vb.x + (panStart.current.x - current.x),
+          y: vb.y + (panStart.current.y - current.y),
+          w: vb.w,
+          h: vb.h,
+        }));
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        isPanning.current = false;
+        lastPinchDist.current = 0;
+      } else if (e.touches.length === 1) {
+        // Went from pinch to single finger — start panning from current position
+        lastPinchDist.current = 0;
+        isPanning.current = true;
+        panStartScreen.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const svgPt = screenToSVG(e.touches[0].clientX, e.touches[0].clientY);
+        if (svgPt) panStart.current = svgPt;
+      }
+    };
+
+    svg.addEventListener("touchstart", onTouchStart, { passive: false });
+    svg.addEventListener("touchmove", onTouchMove, { passive: false });
+    svg.addEventListener("touchend", onTouchEnd);
+
+    return () => {
+      svg.removeEventListener("touchstart", onTouchStart);
+      svg.removeEventListener("touchmove", onTouchMove);
+      svg.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [svgRef]);
+
   const resetZoom = useCallback(() => {
     const base = baseViewBox.current;
     const aspect = base.w / base.h;

@@ -112,6 +112,7 @@ export default memo(function GameMap({
         className="absolute inset-0 w-full h-full select-none"
         style={{
           cursor: "grab",
+          touchAction: "none",
         }}
         preserveAspectRatio="none"
         {...handlers}
