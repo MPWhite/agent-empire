@@ -56,34 +56,6 @@ export default function PlayerDetail({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="sticky top-0 flex items-center justify-between px-3 py-1.5 border-b border-zinc-800 bg-zinc-950 z-10 shrink-0">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5"
-            style={{ backgroundColor: player.color }}
-          />
-          <span className="text-xs font-bold font-mono text-zinc-200 uppercase tracking-wide">
-            {player.name}
-          </span>
-          {player.isAlive ? (
-            <span className="text-[9px] font-mono bg-emerald-900 text-emerald-400 px-1.5 py-0.5 uppercase">
-              Active
-            </span>
-          ) : (
-            <span className="text-[9px] font-mono bg-red-900 text-red-400 px-1.5 py-0.5 uppercase">
-              Eliminated
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          className="text-zinc-600 hover:text-zinc-300 text-xs font-mono px-2 py-1 border border-zinc-800 hover:border-zinc-700 transition-colors"
-        >
-          CLOSE
-        </button>
-      </div>
-
       {/* Content */}
       <div className="flex-1 flex flex-col divide-y divide-zinc-800 overflow-auto">
         {/* Stats panel */}

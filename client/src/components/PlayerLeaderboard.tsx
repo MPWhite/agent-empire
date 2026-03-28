@@ -37,7 +37,7 @@ export default function PlayerLeaderboard({
   });
 
   return (
-    <div className="p-2 md:p-3">
+    <div className="p-2">
       <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1 md:mb-2 font-mono">
         Leaderboard
       </h3>
