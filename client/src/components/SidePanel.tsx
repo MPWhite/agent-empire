@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { SerializedGameState, AnalystReport, ChatMessage, Proposal, Player } from "@/lib/types";
+import type { TurnHistoryEntry, PlayerDeltas } from "@/lib/useTurnHistory";
 import NewsFeed from "./NewsFeed";
 import PlayerDetail from "./PlayerDetail";
 import PlayerLeaderboard from "./PlayerLeaderboard";
@@ -17,6 +18,9 @@ interface SidePanelProps {
   onPlayerClick: (playerId: string) => void;
   onClosePlayer: () => void;
   onNewGame: () => void;
+  // Turn history for charts
+  turnHistory: TurnHistoryEntry[];
+  deltas: PlayerDeltas;
   // Team data
   hasTeamData: boolean;
   teamChats: Record<string, ChatMessage[]>;
@@ -37,6 +41,8 @@ export function SidePanel({
   onPlayerClick,
   onClosePlayer,
   onNewGame,
+  turnHistory,
+  deltas,
   hasTeamData,
   teamChats,
   teamProposals,
@@ -148,7 +154,8 @@ export function SidePanel({
                 <PlayerDetail
                   playerId={selectedPlayerId}
                   gameState={gameState}
-                  reports={reports}
+                  turnHistory={turnHistory}
+                  deltas={deltas}
                   onClose={onClosePlayer}
                 />
               </div>
