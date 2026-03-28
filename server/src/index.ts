@@ -19,6 +19,7 @@ if (existsSync(envPath)) {
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const MIN_AGENTS_TO_START = parseInt(process.env.MIN_AGENTS ?? '8', 10);
+const CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 
 // ── Express App ──
 const app = express();
@@ -26,7 +27,7 @@ app.use(express.json());
 
 // CORS for spectator frontend
 app.use((_req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (_req.method === 'OPTIONS') {
