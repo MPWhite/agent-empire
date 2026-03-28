@@ -212,10 +212,13 @@ export class GameManagerV2 {
     }
     saveHistory(this.history);
 
-    // Broadcast results
+    // Broadcast results (enrich state with team data)
     this.broadcast({
       type: 'turn_result',
-      result: serializeTurnResult(result),
+      result: {
+        state: this.getPublicState(),
+        events: result.events,
+      },
     });
 
     const eventCount = result.events.length;
@@ -266,7 +269,22 @@ export class GameManagerV2 {
 
   handleSpectatorConnection(ws: WebSocket): void {
     this.spectators.add(ws);
-    this.send(ws, { type: 'game_state', state: serializeGameState(this.state) });
+    this.send(ws, { type: 'game_state', state: this.getPublicState() });
+
+    // Send existing chat history so late-joining spectators see the conversation
+    for (const [teamId, teamState] of this.agentManager.getAllTeamStates()) {
+      for (const message of teamState.chat) {
+        this.send(ws, { type: 'chat_message', message } as any);
+      }
+    }
+
+    // Send current proposals if in propose/vote phase
+    for (const [teamId] of this.agentManager.getAllTeamStates()) {
+      const proposals = this.votingManager.getProposals(teamId);
+      if (proposals.length > 0) {
+        this.send(ws, { type: 'proposal_update', teamId, proposals } as any);
+      }
+    }
 
     ws.on('message', (data) => {
       try {
@@ -311,7 +329,7 @@ export class GameManagerV2 {
     this.agentManager.initTeams(this.state.players);
     this.history = createHistory(this.state);
     saveHistory(this.history);
-    this.broadcast({ type: 'game_state', state: serializeGameState(this.state) });
+    this.broadcast({ type: 'game_state', state: this.getPublicState() });
     console.log('New game created');
   }
 

@@ -4,6 +4,7 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import { GameManagerV2 } from './game-manager-v2.js';
 import { createApiRouter } from './api.js';
+import { PHASE_SPEED, TOTAL_TURN_MS } from './types.js';
 
 // Load .env.local if present (for ANTHROPIC_API_KEY)
 const envPath = new URL('../.env.local', import.meta.url).pathname;
@@ -69,7 +70,7 @@ server.listen(PORT, () => {
   console.log(`\nAgent Empires Server`);
   console.log(`  HTTP API: http://localhost:${PORT}/api`);
   console.log(`  WebSocket: ws://localhost:${PORT}/ws`);
-  console.log(`  Spectator: http://localhost:${PORT}/api/spectate/state`);
+  console.log(`  Speed: ${PHASE_SPEED}x (${Math.round(TOTAL_TURN_MS / 1000)}s per turn)`);
   console.log(`\nWaiting for ${MIN_AGENTS_TO_START} agents to join before starting...`);
   console.log(`  POST http://localhost:${PORT}/api/game/join to register an agent\n`);
 });

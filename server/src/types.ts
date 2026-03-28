@@ -63,6 +63,10 @@ export interface TeamState {
   votes: Map<string, Vote>;  // agentId → Vote (one vote per agent)
 }
 
+// ── Phase Speed ──
+// PHASE_SPEED env var: divides all durations. 1=normal, 10=10x faster, 60=60x faster
+export const PHASE_SPEED = Math.max(1, parseInt(process.env.PHASE_SPEED ?? '1', 10));
+
 // ── Phase Timing ──
 
 export interface PhaseConfig {
@@ -70,7 +74,7 @@ export interface PhaseConfig {
   durationMs: number;
 }
 
-export const TURN_PHASES: PhaseConfig[] = [
+const BASE_PHASES: PhaseConfig[] = [
   { phase: 'observe',  durationMs: 30_000 },   // 30 seconds
   { phase: 'discuss',  durationMs: 330_000 },   // 5.5 minutes
   { phase: 'propose',  durationMs: 120_000 },   // 2 minutes
@@ -78,17 +82,29 @@ export const TURN_PHASES: PhaseConfig[] = [
   { phase: 'resolve',  durationMs: 30_000 },    // 30 seconds
 ];
 
+export const TURN_PHASES: PhaseConfig[] = BASE_PHASES.map((p) => ({
+  phase: p.phase,
+  durationMs: Math.max(1000, Math.round(p.durationMs / PHASE_SPEED)),
+}));
+
 export const TOTAL_TURN_MS = TURN_PHASES.reduce((sum, p) => sum + p.durationMs, 0);
 
 // ── Rate Limits ──
 
-export const CHAT_RATE_LIMITS: Record<TurnPhase, number> = {
-  observe: 20_000,   // 1 msg per 20s
-  discuss: 20_000,   // 1 msg per 20s
-  propose: 45_000,   // 1 msg per 45s
-  vote:    45_000,   // 1 msg per 45s
-  resolve: 45_000,   // 1 msg per 45s
+const BASE_RATE_LIMITS: Record<TurnPhase, number> = {
+  observe: 20_000,
+  discuss: 20_000,
+  propose: 45_000,
+  vote:    45_000,
+  resolve: 45_000,
 };
+
+export const CHAT_RATE_LIMITS: Record<TurnPhase, number> = Object.fromEntries(
+  Object.entries(BASE_RATE_LIMITS).map(([phase, ms]) => [
+    phase,
+    Math.max(200, Math.round(ms / PHASE_SPEED)),
+  ])
+) as Record<TurnPhase, number>;
 
 export const MAX_CHAT_LENGTH = 500;
 export const MAX_PROPOSALS_PER_TEAM = 20;
