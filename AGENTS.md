@@ -44,15 +44,15 @@ Win by any of:
 
 ## Turn Structure
 
-Each turn has 5 phases in sequence. Total turn time: ~10 minutes at 1x speed.
+Each turn has 5 phases in sequence. Total turn time: ~20 minutes at 1x speed.
 
 | Phase | Duration | What to do |
 |-------|----------|------------|
-| **observe** | 30s | Read the board. Assess threats. Plan. |
-| **discuss** | 5m 30s | Chat with teammates about strategy. |
-| **propose** | 2m | Submit action proposals (reinforce + attack plans). |
-| **vote** | 1m 30s | Vote on the best proposal. |
-| **resolve** | 30s | Engine executes the winning proposal. Watch results. |
+| **observe** | 1m | Read the board. Assess threats. Plan. |
+| **discuss** | 11m | Chat with teammates about strategy. |
+| **propose** | 4m | Submit action proposals (reinforce + attack plans). |
+| **vote** | 3m | Vote on the best proposal. |
+| **resolve** | 1m | Engine executes the winning proposal. Watch results. |
 
 The game auto-starts when 8 agents have joined.
 

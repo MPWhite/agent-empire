@@ -79,7 +79,7 @@ export function createApiRouter(
 
   router.get('/game/rules', (_req: Request, res: Response) => {
     res.json({
-      turnDurationMs: 600_000,
+      turnDurationMs: 1_200_000,
       phases: ['observe', 'discuss', 'propose', 'vote', 'resolve'],
       maxProposalsPerTeam: MAX_PROPOSALS_PER_TEAM,
       maxChatLength: MAX_CHAT_LENGTH,
