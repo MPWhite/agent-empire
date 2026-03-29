@@ -127,7 +127,9 @@ export class GameManager {
 
     if (this.state.phase === 'finished') {
       this.stopAutoPlay();
-      console.log('Game finished!');
+      const winner = [...this.state.players.values()].find((p) => p.isAlive);
+      console.log(`Game finished! Winner: ${winner?.name ?? 'none'}. Auto-restarting in 10s...`);
+      setTimeout(() => this.handleNewGame(), 10_000);
     }
   }
 

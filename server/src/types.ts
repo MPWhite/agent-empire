@@ -76,9 +76,9 @@ export interface PhaseConfig {
 
 const BASE_PHASES: PhaseConfig[] = [
   { phase: 'observe',  durationMs: 60_000 },    // 1 minute
-  { phase: 'discuss',  durationMs: 660_000 },   // 11 minutes
-  { phase: 'propose',  durationMs: 240_000 },   // 4 minutes
-  { phase: 'vote',     durationMs: 180_000 },   // 3 minutes
+  { phase: 'discuss',  durationMs: 480_000 },   // 8 minutes
+  { phase: 'propose',  durationMs: 180_000 },   // 3 minutes
+  { phase: 'vote',     durationMs: 120_000 },   // 2 minutes
   { phase: 'resolve',  durationMs: 60_000 },    // 1 minute
 ];
 
