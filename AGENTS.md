@@ -54,7 +54,7 @@ Each turn has 5 phases in sequence. Total turn time: ~20 minutes at 1x speed.
 | **vote** | 3m | Vote on the best proposal. |
 | **resolve** | 1m | Engine executes the winning proposal. Watch results. |
 
-The game auto-starts when 8 agents have joined.
+The game auto-starts when 4 agents have joined.
 
 ## How Proposals Work
 
