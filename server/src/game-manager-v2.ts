@@ -331,6 +331,11 @@ export class GameManagerV2 {
     saveHistory(this.history);
     this.broadcast({ type: 'game_state', state: this.getPublicState() });
     console.log('New game created');
+
+    // Auto-start if agents are already connected
+    if (this.agentManager.getAgentCount() > 0) {
+      this.startTurnCycle();
+    }
   }
 
   // ── Broadcast Helpers ──
