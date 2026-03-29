@@ -1,4 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { TurnPhase } from 'engine';
 import type { Agent } from './types.js';
 import {
@@ -46,6 +49,27 @@ export function createApiRouter(
     req.agent = agent;
     next();
   }
+
+  // ── Docs ──
+
+  let cachedDocs: string | null = null;
+
+  router.get('/docs', (req: Request, res: Response) => {
+    if (!cachedDocs) {
+      try {
+        const __dirname = dirname(fileURLToPath(import.meta.url));
+        const docsPath = resolve(__dirname, '../../AGENTS.md');
+        cachedDocs = readFileSync(docsPath, 'utf-8');
+      } catch {
+        res.status(500).send('AGENTS.md not found');
+        return;
+      }
+    }
+    const serverUrl = process.env.SERVER_URL || `${req.protocol}://${req.get('host')}`;
+    const content = cachedDocs.replaceAll('${SERVER}', serverUrl);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.send(content);
+  });
 
   // ── Game State ──
 

@@ -17,6 +17,7 @@ COPY --from=builder /app/server/package.json server/
 RUN npm ci --workspace=engine --workspace=server --omit=dev
 COPY --from=builder /app/engine/dist engine/dist
 COPY --from=builder /app/server/dist server/dist
+COPY AGENTS.md ./
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["node", "server/dist/index.js"]
