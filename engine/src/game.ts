@@ -1,4 +1,5 @@
-import type { GameState, Player, GamePhase } from './types.js';
+import type { GameState, Player, GamePhase, TechProgress } from './types.js';
+import { EMPTY_RESOURCES, REPUTATION_INITIAL, EVENT_MIN_INTERVAL } from './types.js';
 import { createDefaultMap } from './map.js';
 
 const PLAYER_COLORS = [
@@ -13,6 +14,7 @@ const PLAYER_COLORS = [
 export function createGame(playerDefs: { id: string; name: string }[]): GameState {
   const map = createDefaultMap();
   const players = new Map<string, Player>();
+  const techProgress = new Map<string, TechProgress>();
 
   for (let i = 0; i < playerDefs.length; i++) {
     const def = playerDefs[i];
@@ -21,7 +23,12 @@ export function createGame(playerDefs: { id: string; name: string }[]): GameStat
       name: def.name,
       color: PLAYER_COLORS[i % PLAYER_COLORS.length],
       isAlive: true,
+      resources: { ...EMPTY_RESOURCES, money: 10, food: 10 }, // Starting resources
+      tech: { military: 0, economic: 0, intelligence: 0 },
+      reputation: REPUTATION_INITIAL,
+      shortages: { oil: 0, minerals: 0, food: 0 },
     });
+    techProgress.set(def.id, { military: 0, economic: 0, intelligence: 0 });
   }
 
   return {
@@ -29,6 +36,14 @@ export function createGame(playerDefs: { id: string; name: string }[]): GameStat
     players,
     turnNumber: 1,
     phase: 'waiting',
+    techProgress,
+    agreements: [],
+    sanctions: [],
+    diplomaticMessages: [],
+    unResolutions: [],
+    activeResolutions: [],
+    events: [],
+    nextEventTurn: EVENT_MIN_INTERVAL + 1, // First event around turn 9-13
   };
 }
 

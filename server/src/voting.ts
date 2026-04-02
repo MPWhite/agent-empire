@@ -1,6 +1,33 @@
 import crypto from 'node:crypto';
-import type { PlayerAction, AttackAction, ReinforceAction } from 'engine';
-import type { Proposal, ProposalReinforce, ProposalAttack, Vote } from './types.js';
+import type {
+  PlayerAction,
+  AttackAction,
+  ReinforceAction,
+  ResearchAction,
+  BuildFortAction,
+  LaunchMissileAction,
+  LaunchNukeAction,
+  TradeAction,
+  SanctionAction,
+  SpyAction,
+  CyberattackAction,
+  DiplomacyAction,
+} from 'engine';
+import type {
+  Proposal,
+  ProposalReinforce,
+  ProposalAttack,
+  ProposalResearch,
+  ProposalBuildFort,
+  ProposalMissile,
+  ProposalNuke,
+  ProposalTrade,
+  ProposalSanction,
+  ProposalSpy,
+  ProposalCyberattack,
+  ProposalDiplomacy,
+  Vote,
+} from './types.js';
 import { MAX_PROPOSALS_PER_TEAM } from './types.js';
 import type { AgentManager } from './agents.js';
 
@@ -17,6 +44,15 @@ export class VotingManager {
     name: string,
     reinforce: ProposalReinforce[],
     attack: ProposalAttack[],
+    research?: ProposalResearch,
+    buildFort?: ProposalBuildFort[],
+    launchMissile?: ProposalMissile[],
+    launchNuke?: ProposalNuke[],
+    trade?: ProposalTrade[],
+    sanction?: ProposalSanction[],
+    spy?: ProposalSpy[],
+    cyberattack?: ProposalCyberattack[],
+    diplomacy?: ProposalDiplomacy[],
   ): Proposal {
     const teamState = this.agentManager.getTeamState(teamId);
     if (!teamState) throw new Error('Team not found');
@@ -38,6 +74,15 @@ export class VotingManager {
       name: trimmedName,
       reinforce: reinforce ?? [],
       attack: attack ?? [],
+      research: research,
+      buildFort: buildFort ?? [],
+      launchMissile: launchMissile ?? [],
+      launchNuke: launchNuke ?? [],
+      trade: trade ?? [],
+      sanction: sanction ?? [],
+      spy: spy ?? [],
+      cyberattack: cyberattack ?? [],
+      diplomacy: diplomacy ?? [],
       submittedAt: Date.now(),
       votes: 0,
     };
@@ -88,8 +133,6 @@ export class VotingManager {
   /**
    * Resolve voting for a team: return the winning proposal's actions
    * converted to engine PlayerAction format.
-   * Plurality wins. Tiebreaker: earliest submission.
-   * Returns null if no proposals or no votes.
    */
   resolveVotes(teamId: string): PlayerAction[] | null {
     const teamState = this.agentManager.getTeamState(teamId);
@@ -98,7 +141,6 @@ export class VotingManager {
     const proposals = Array.from(teamState.proposals.values());
     if (proposals.length === 0) return null;
 
-    // Find the winning proposal: most votes, tiebreak by earliest submission
     let winner: Proposal | null = null;
     for (const proposal of proposals) {
       if (!winner || proposal.votes > winner.votes ||
@@ -108,7 +150,6 @@ export class VotingManager {
     }
 
     if (!winner || winner.votes === 0) {
-      // No votes cast — use the first proposal submitted as fallback
       winner = proposals.sort((a, b) => a.submittedAt - b.submittedAt)[0];
     }
 
@@ -138,6 +179,95 @@ export class VotingManager {
         toTerritoryId: a.to,
         troops: a.troops,
       } satisfies AttackAction);
+    }
+
+    if (proposal.research) {
+      actions.push({
+        type: 'research',
+        playerId: teamId,
+        branch: proposal.research.branch,
+        investment: proposal.research.investment,
+      } satisfies ResearchAction);
+    }
+
+    for (const f of proposal.buildFort) {
+      actions.push({
+        type: 'buildFort',
+        playerId: teamId,
+        territoryId: f.territoryId,
+      } satisfies BuildFortAction);
+    }
+
+    for (const m of proposal.launchMissile) {
+      actions.push({
+        type: 'launchMissile',
+        playerId: teamId,
+        targetTerritoryId: m.target,
+      } satisfies LaunchMissileAction);
+    }
+
+    for (const n of proposal.launchNuke) {
+      actions.push({
+        type: 'launchNuke',
+        playerId: teamId,
+        targetTerritoryId: n.target,
+      } satisfies LaunchNukeAction);
+    }
+
+    for (const t of proposal.trade) {
+      actions.push({
+        type: 'trade',
+        playerId: teamId,
+        targetPlayerId: t.targetEmpire,
+        offer: t.offer,
+        request: t.request,
+      } satisfies TradeAction);
+    }
+
+    for (const s of proposal.sanction) {
+      actions.push({
+        type: 'sanction',
+        playerId: teamId,
+        targetPlayerId: s.targetEmpire,
+      } satisfies SanctionAction);
+    }
+
+    for (const sp of proposal.spy) {
+      actions.push({
+        type: 'spy',
+        playerId: teamId,
+        targetPlayerId: sp.targetEmpire,
+        operation: sp.operation,
+      } satisfies SpyAction);
+    }
+
+    for (const c of proposal.cyberattack) {
+      actions.push({
+        type: 'cyberattack',
+        playerId: teamId,
+        targetPlayerId: c.targetEmpire,
+        target: c.target,
+        territoryOrBranch: c.territoryOrBranch,
+      } satisfies CyberattackAction);
+    }
+
+    for (const d of proposal.diplomacy) {
+      actions.push({
+        type: 'diplomacy',
+        playerId: teamId,
+        diplomacyType: d.type,
+        targetPlayerId: d.targetEmpire,
+        messageText: d.messageText,
+        treatyType: d.treatyType,
+        treatyDuration: d.treatyDuration,
+        tradeOffer: d.tradeOffer,
+        tradeRequest: d.tradeRequest,
+        agreementId: d.agreementId,
+        resolutionId: d.resolutionId,
+        vote: d.vote,
+        resolutionType: d.resolutionType,
+        resolutionDetails: d.resolutionDetails,
+      } satisfies DiplomacyAction);
     }
 
     return actions;

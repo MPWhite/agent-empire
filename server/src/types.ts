@@ -1,4 +1,4 @@
-import type { TurnPhase, AttackAction, ReinforceAction } from 'engine';
+import type { TurnPhase, ResourceType, TechBranch, AgreementType, UNResolutionType, SpyOperation } from 'engine';
 
 // ── Agent (individual AI connecting to the game) ──
 
@@ -24,6 +24,59 @@ export interface ProposalAttack {
   troops: number;
 }
 
+export interface ProposalResearch {
+  branch: TechBranch;
+  investment: number;
+}
+
+export interface ProposalBuildFort {
+  territoryId: string;
+}
+
+export interface ProposalMissile {
+  target: string; // territory ID
+}
+
+export interface ProposalNuke {
+  target: string; // territory ID
+}
+
+export interface ProposalTrade {
+  targetEmpire: string;
+  offer: { resource: ResourceType; amount: number };
+  request: { resource: ResourceType; amount: number };
+}
+
+export interface ProposalSanction {
+  targetEmpire: string;
+}
+
+export interface ProposalSpy {
+  targetEmpire: string;
+  operation: SpyOperation;
+}
+
+export interface ProposalCyberattack {
+  targetEmpire: string;
+  target: 'fort' | 'tech';
+  territoryOrBranch: string;
+}
+
+export interface ProposalDiplomacy {
+  type: 'message' | 'proposeTreaty' | 'breakTreaty' | 'unVote';
+  targetEmpire?: string;
+  messageText?: string;
+  treatyType?: AgreementType;
+  treatyDuration?: number;
+  tradeOffer?: { resource: ResourceType; amount: number };
+  tradeRequest?: { resource: ResourceType; amount: number };
+  agreementId?: string;
+  resolutionId?: string;
+  vote?: 'yes' | 'no';
+  resolutionType?: UNResolutionType;
+  resolutionDetails?: Record<string, any>;
+}
+
 export interface Proposal {
   id: string;          // Server-assigned: "prop-xxxx"
   teamId: string;
@@ -31,6 +84,15 @@ export interface Proposal {
   name: string;        // Human-readable name (max 80 chars)
   reinforce: ProposalReinforce[];
   attack: ProposalAttack[];
+  research?: ProposalResearch;
+  buildFort: ProposalBuildFort[];
+  launchMissile: ProposalMissile[];
+  launchNuke: ProposalNuke[];
+  trade: ProposalTrade[];
+  sanction: ProposalSanction[];
+  spy: ProposalSpy[];
+  cyberattack: ProposalCyberattack[];
+  diplomacy: ProposalDiplomacy[];
   submittedAt: number;
   votes: number;       // Live vote count
 }

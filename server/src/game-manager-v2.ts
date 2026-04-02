@@ -260,12 +260,14 @@ export class GameManagerV2 {
   }
 
   getPublicState(): any {
+    const serialized = serializeGameState(this.state);
     return {
-      ...serializeGameState(this.state),
+      ...serialized,
       turnPhase: this.getCurrentPhase(),
       phaseEndsAt: new Date(this.getPhaseEndsAt()).toISOString(),
       agentCounts: this.agentManager.getTeamAgentCounts(),
       totalAgents: this.agentManager.getAgentCount(),
+      maxTurns: 100,
     };
   }
 

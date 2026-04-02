@@ -1,4 +1,20 @@
-import type { GameState, GamePhase, PlayerAction, TurnResult, Player, Territory, Continent } from 'engine';
+import type {
+  GameState,
+  GamePhase,
+  Player,
+  Territory,
+  Continent,
+  TurnResult,
+  TechProgress,
+  Agreement,
+  Sanction,
+  DiplomaticMessage,
+  UNResolution,
+  ActiveResolution,
+  WorldEvent,
+  Resources,
+} from 'engine';
+import { EMPTY_RESOURCES } from 'engine';
 import type { MajorEvent, TurnSnapshot } from './history.js';
 
 // ── Client → Server Messages ──
@@ -69,7 +85,6 @@ export type ServerMessage =
   | TurnSnapshotMessage;
 
 // ── Serialization helpers ──
-// Maps and Sets can't be JSON-serialized, so we convert them
 
 export interface SerializedGameMap {
   territories: Record<string, Territory>;
@@ -82,6 +97,14 @@ export interface SerializedGameState {
   players: Record<string, Player>;
   turnNumber: number;
   phase: string;
+  // V2 additions
+  agreements: Agreement[];
+  sanctions: Sanction[];
+  diplomaticMessages: DiplomaticMessage[];
+  unResolutions: UNResolution[];
+  activeResolutions: ActiveResolution[];
+  events: WorldEvent[];
+  nextEventTurn: number;
 }
 
 export interface SerializedTurnResult {
@@ -115,13 +138,24 @@ export function serializeGameState(state: GameState): SerializedGameState {
     players,
     turnNumber: state.turnNumber,
     phase: state.phase,
+    agreements: state.agreements,
+    sanctions: state.sanctions,
+    diplomaticMessages: state.diplomaticMessages,
+    unResolutions: state.unResolutions,
+    activeResolutions: state.activeResolutions,
+    events: state.events,
+    nextEventTurn: state.nextEventTurn,
   };
 }
 
 export function deserializeGameState(data: SerializedGameState): GameState {
   const territories = new Map<string, Territory>();
   for (const [id, t] of Object.entries(data.map.territories)) {
-    territories.set(id, t);
+    // Ensure v2 fields exist with defaults for backward compatibility
+    territories.set(id, {
+      ...{ terrain: 'plains' as const, resources: {}, fortLevel: 0, falloutTurns: 0 },
+      ...t,
+    });
   }
 
   const continents = new Map<string, Continent>();
@@ -136,7 +170,20 @@ export function deserializeGameState(data: SerializedGameState): GameState {
 
   const players = new Map<string, Player>();
   for (const [id, p] of Object.entries(data.players)) {
-    players.set(id, p);
+    // Ensure v2 fields exist with defaults
+    const defaults = {
+      resources: { ...EMPTY_RESOURCES },
+      tech: { military: 0, economic: 0, intelligence: 0 },
+      reputation: 50,
+      shortages: { oil: 0, minerals: 0, food: 0 },
+    };
+    players.set(id, { ...defaults, ...p });
+  }
+
+  // Deserialize techProgress (not stored in serialized state — reconstruct)
+  const techProgress = new Map<string, TechProgress>();
+  for (const [id] of players) {
+    techProgress.set(id, { military: 0, economic: 0, intelligence: 0 });
   }
 
   return {
@@ -144,6 +191,14 @@ export function deserializeGameState(data: SerializedGameState): GameState {
     players,
     turnNumber: data.turnNumber,
     phase: data.phase as GamePhase,
+    techProgress,
+    agreements: data.agreements ?? [],
+    sanctions: data.sanctions ?? [],
+    diplomaticMessages: data.diplomaticMessages ?? [],
+    unResolutions: data.unResolutions ?? [],
+    activeResolutions: data.activeResolutions ?? [],
+    events: data.events ?? [],
+    nextEventTurn: data.nextEventTurn ?? 10,
   };
 }
 

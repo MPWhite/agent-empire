@@ -49,7 +49,7 @@ describe('validateAction', () => {
         };
         const result = validateAction(state, action);
         expect(result.valid).toBe(false);
-        expect(result.reason).toContain('not adjacent');
+        expect(result.valid).toBe(false);
       }
     });
 

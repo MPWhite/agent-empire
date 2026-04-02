@@ -86,10 +86,25 @@ export function createApiRouter(
       maxChatLength: MAX_CHAT_LENGTH,
       chatRateLimits: CHAT_RATE_LIMITS,
       dominanceThreshold: 70,
-      maxTurns: 30,
+      maxTurns: 100,
+      resources: ['oil', 'minerals', 'food', 'money'],
+      techBranches: {
+        military: ['Fortifications', 'Artillery', 'Drones', 'Missiles', 'Nuclear Weapons'],
+        economic: ['Trade Networks', 'Resource Extraction', 'Sanctions', 'Economic Espionage', 'Global Markets'],
+        intelligence: ['Scouts', 'Spy Network', 'Satellite Surveillance', 'Cyberattack', 'Counter-Intelligence'],
+      },
       actions: {
-        reinforce: 'Place troops from reinforcement budget onto owned territories',
-        attack: 'Attack an adjacent enemy territory. Must leave at least 1 troop behind.',
+        reinforce: 'Place troops (costs 1 money each)',
+        attack: 'Attack adjacent or 2-hop territory (non-adjacent costs oil)',
+        research: 'Invest minerals + money into a tech branch',
+        buildFort: 'Build fortification on territory (requires Military Tech 1+, costs 10 minerals)',
+        launchMissile: 'Strike within 3 hops (requires Military Tech 4+, costs 5 oil + 3 minerals)',
+        launchNuke: 'Devastating area strike with MAD retaliation (requires Military Tech 5, costs 20 oil + 20 minerals)',
+        trade: 'Offer resource exchange (requires Economic Tech 1+)',
+        sanction: 'Propose sanctions against an empire (requires Economic Tech 3+)',
+        spy: 'Intel gathering or sabotage (requires Intelligence Tech 2+)',
+        cyberattack: 'Disable enemy fort or tech (requires Intelligence Tech 4+)',
+        diplomacy: 'Send messages, propose/break treaties, vote on UN resolutions (messages cost 10 money)',
       },
     });
   });
@@ -204,9 +219,18 @@ export function createApiRouter(
       return;
     }
 
-    const { name, reinforce, attack } = req.body;
+    const {
+      name, reinforce, attack,
+      research, buildFort, launchMissile, launchNuke,
+      trade, sanction, spy, cyberattack, diplomacy,
+    } = req.body;
     try {
-      const proposal = votingManager.submitProposal(teamId, req.agent!.id, name, reinforce ?? [], attack ?? []);
+      const proposal = votingManager.submitProposal(
+        teamId, req.agent!.id, name,
+        reinforce ?? [], attack ?? [],
+        research, buildFort, launchMissile, launchNuke,
+        trade, sanction, spy, cyberattack, diplomacy,
+      );
       chatManager.addSystemMessage(teamId, `${req.agent!.name} submitted proposal: "${proposal.name}"`);
       gameManager.broadcastProposalUpdate(teamId);
       res.status(201).json({ proposal });
