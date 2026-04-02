@@ -100,6 +100,7 @@ export function createApiRouter(
       const result = agentManager.joinAgent(gameManager.getPlayers());
       // Post a system message to the team chat
       chatManager.addSystemMessage(result.teamId, `${result.agentId} has joined the team.`);
+      gameManager.tryResumeTurnCycle();
       res.status(201).json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message, code: 'JOIN_FAILED' });

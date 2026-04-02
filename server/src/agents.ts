@@ -134,6 +134,18 @@ export class AgentManager {
   }
 
   /**
+   * Check whether any alive team has at least one agent.
+   */
+  hasAliveTeamWithAgents(players: Map<string, Player>): boolean {
+    for (const [playerId, player] of players) {
+      if (!player.isAlive) continue;
+      const teamState = this.teams.get(playerId);
+      if (teamState && teamState.agents.size > 0) return true;
+    }
+    return false;
+  }
+
+  /**
    * Clear proposals and votes for a new turn. Keeps chat history.
    */
   resetTurnState(): void {

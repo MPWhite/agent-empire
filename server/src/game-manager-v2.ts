@@ -51,6 +51,7 @@ export class GameManagerV2 {
   private phaseTimer: ReturnType<typeof setTimeout> | null = null;
   private phaseStartedAt: number = 0;
   private turnActive = false;
+  private pauseChecker: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.agentManager = new AgentManager();
@@ -87,6 +88,7 @@ export class GameManagerV2 {
   startTurnCycle(): void {
     if (this.turnActive) return;
     if (this.state.phase === 'finished') return;
+    this.clearPauseChecker();
 
     // Ensure game is in playing state
     if (this.state.phase === 'waiting') {
@@ -101,6 +103,14 @@ export class GameManagerV2 {
   private beginTurn(): void {
     if (this.state.phase === 'finished') {
       this.turnActive = false;
+      return;
+    }
+
+    // Pause if no alive team has agents
+    if (!this.agentManager.hasAliveTeamWithAgents(this.state.players)) {
+      console.log('No alive team has agents. Pausing turn cycle...');
+      this.turnActive = false;
+      this.startPauseChecker();
       return;
     }
 
@@ -324,8 +334,38 @@ export class GameManagerV2 {
     }
   }
 
+  private startPauseChecker(): void {
+    if (this.pauseChecker) return;
+    this.pauseChecker = setInterval(() => {
+      if (this.agentManager.hasAliveTeamWithAgents(this.state.players)) {
+        this.clearPauseChecker();
+        console.log('Agents detected. Resuming turn cycle.');
+        this.startTurnCycle();
+      }
+    }, 10_000);
+  }
+
+  private clearPauseChecker(): void {
+    if (this.pauseChecker) {
+      clearInterval(this.pauseChecker);
+      this.pauseChecker = null;
+    }
+  }
+
+  tryResumeTurnCycle(): void {
+    if (this.turnActive) return;
+    if (this.state.phase === 'finished') return;
+    if (this.state.phase === 'waiting') return;
+    if (!this.agentManager.hasAliveTeamWithAgents(this.state.players)) return;
+
+    this.clearPauseChecker();
+    console.log('Agent joined. Resuming turn cycle.');
+    this.startTurnCycle();
+  }
+
   private handleNewGame(): void {
     if (this.phaseTimer) clearTimeout(this.phaseTimer);
+    this.clearPauseChecker();
     this.turnActive = false;
     this.state = this.createFreshGame();
     this.agentManager.initTeams(this.state.players);
