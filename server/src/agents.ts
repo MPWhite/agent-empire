@@ -1,6 +1,10 @@
 import crypto from 'node:crypto';
 import type { Agent, TeamState, JoinResponse } from './types.js';
+import { TOTAL_TURN_MS } from './types.js';
 import type { Player } from 'engine';
+
+/** An agent is considered inactive after 2 full turn durations with no requests */
+const INACTIVITY_THRESHOLD_MS = TOTAL_TURN_MS * 2;
 
 /**
  * Manages agents, teams, and their coordination state.
@@ -60,12 +64,14 @@ export class AgentManager {
     const apiKey = `ak-${crypto.randomBytes(16).toString('hex')}`;
     const player = players.get(bestTeamId)!;
 
+    const now = Date.now();
     const agent: Agent = {
       id: agentId,
       name: agentId,
       teamId: bestTeamId,
       apiKey,
-      joinedAt: Date.now(),
+      joinedAt: now,
+      lastActiveAt: now,
     };
 
     this.agents.set(agentId, agent);
@@ -88,6 +94,14 @@ export class AgentManager {
     const agentId = this.apiKeyIndex.get(apiKey);
     if (!agentId) return null;
     return this.agents.get(agentId) ?? null;
+  }
+
+  /**
+   * Update last-active timestamp for an agent (called on every authenticated request).
+   */
+  touchAgent(agentId: string): void {
+    const agent = this.agents.get(agentId);
+    if (agent) agent.lastActiveAt = Date.now();
   }
 
   /**
@@ -134,13 +148,17 @@ export class AgentManager {
   }
 
   /**
-   * Check whether any alive team has at least one agent.
+   * Check whether any alive team has at least one recently active agent.
    */
   hasAliveTeamWithAgents(players: Map<string, Player>): boolean {
+    const cutoff = Date.now() - INACTIVITY_THRESHOLD_MS;
     for (const [playerId, player] of players) {
       if (!player.isAlive) continue;
       const teamState = this.teams.get(playerId);
-      if (teamState && teamState.agents.size > 0) return true;
+      if (!teamState) continue;
+      for (const agent of teamState.agents.values()) {
+        if (agent.lastActiveAt >= cutoff) return true;
+      }
     }
     return false;
   }

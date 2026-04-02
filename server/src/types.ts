@@ -8,6 +8,7 @@ export interface Agent {
   teamId: string;      // Which empire/player this agent belongs to
   apiKey: string;      // Auth token for API requests
   joinedAt: number;    // Timestamp
+  lastActiveAt: number; // Updated on every authenticated request
 }
 
 // ── Proposal (an action plan submitted by an agent for team voting) ──

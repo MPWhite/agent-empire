@@ -46,6 +46,7 @@ export function createApiRouter(
       res.status(401).json({ error: 'Invalid API key', code: 'INVALID_KEY' });
       return;
     }
+    agentManager.touchAgent(agent.id);
     req.agent = agent;
     next();
   }
