@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useGameSocket } from "@/lib/socket";
 import { useHistoryMode } from "@/lib/useHistoryMode";
 import { ReportEngine } from "@/lib/report-engine";
 import { useTurnHistory } from "@/lib/useTurnHistory";
 import type { AnalystReport } from "@/lib/types";
 import GameMap from "@/components/GameMap";
+import MapAnimations from "@/components/MapAnimations";
 import HistoryPlayer from "@/components/HistoryPlayer";
 import { CommandBar } from "@/components/CommandBar";
 import { SidePanel } from "@/components/SidePanel";
@@ -151,6 +152,22 @@ export default function Home() {
     [gameState]
   );
 
+  // Compute player capitals (most troops) for map animations
+  const playerCapitals = useMemo(() => {
+    if (!gameState) return new Map<string, string>();
+    const caps = new Map<string, string>();
+    const maxTroops = new Map<string, number>();
+    for (const t of Object.values(gameState.map.territories)) {
+      if (!t.ownerId) continue;
+      const current = maxTroops.get(t.ownerId) ?? 0;
+      if (t.troops > current) {
+        maxTroops.set(t.ownerId, t.troops);
+        caps.set(t.ownerId, t.id);
+      }
+    }
+    return caps;
+  }, [gameState?.map.territories]);
+
   // ── Loading state ──
   if (!gameState) {
     return (
@@ -206,9 +223,16 @@ export default function Home() {
             onTerritoryHover={setHoveredTerritory}
             hoveredTerritory={hoveredTerritory}
             focusRegion={null}
-          />
+          >
+            <MapAnimations events={events} playerCapitals={playerCapitals} />
+          </GameMap>
           {/* Breaking news ticker overlay */}
-          <BreakingTicker reports={reports} />
+          <BreakingTicker
+            reports={reports}
+            events={events}
+            players={gameState.players}
+            territories={gameState.map.territories}
+          />
           {/* Mini leaderboard when nothing selected and no hover tooltip */}
           {!selectedPlayerId && !hoveredTerritory && (
             <MiniLeaderboard
@@ -234,6 +258,7 @@ export default function Home() {
           teamProposals={teamProposals}
           agentCounts={gameState.agentCounts ?? {}}
           players={gameState.players}
+          events={events}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
           onMobileToggle={() => setMobileOpen(true)}

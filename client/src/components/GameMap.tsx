@@ -13,6 +13,7 @@ interface GameMapProps {
   onTerritoryHover: (territoryId: string | null) => void;
   hoveredTerritory: string | null;
   focusRegion?: { territoryIds: string[] } | null;
+  children?: React.ReactNode; // for MapAnimations overlay
 }
 
 export default memo(function GameMap({
@@ -22,6 +23,7 @@ export default memo(function GameMap({
   onTerritoryHover,
   hoveredTerritory,
   focusRegion,
+  children,
 }: GameMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,49 @@ export default memo(function GameMap({
     return lines;
   }, [gameState.map.adjacency, gameState.map.continents]);
 
+  // Diplomatic relationship lines between empires
+  const diplomacyLines = useMemo(() => {
+    const agreements = gameState.agreements ?? [];
+    const sanctions = gameState.sanctions ?? [];
+    const shapeMap = new Map(TERRITORY_SHAPES.map((s) => [s.id, s]));
+
+    // Find "capital" (most troops) for each player
+    const playerCapitals = new Map<string, { cx: number; cy: number }>();
+    const playerTroopMax = new Map<string, number>();
+    for (const t of Object.values(gameState.map.territories)) {
+      if (!t.ownerId) continue;
+      const current = playerTroopMax.get(t.ownerId) ?? 0;
+      if (t.troops > current) {
+        playerTroopMax.set(t.ownerId, t.troops);
+        const shape = shapeMap.get(t.id);
+        if (shape) playerCapitals.set(t.ownerId, { cx: shape.cx, cy: shape.cy });
+      }
+    }
+
+    const lines: { x1: number; y1: number; x2: number; y2: number; color: string; dash: string }[] = [];
+
+    for (const a of agreements) {
+      const [p1, p2] = a.parties;
+      const c1 = playerCapitals.get(p1);
+      const c2 = playerCapitals.get(p2);
+      if (!c1 || !c2) continue;
+      const color = a.type === 'militaryAlliance' ? '#34d399' : a.type === 'tradeDeal' ? '#60a5fa' : '#a1a1aa';
+      const dash = a.type === 'militaryAlliance' ? '' : '6 3';
+      lines.push({ x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy, color, dash });
+    }
+
+    for (const s of sanctions) {
+      const target = playerCapitals.get(s.targetPlayerId);
+      for (const sup of s.supporters) {
+        const source = playerCapitals.get(sup);
+        if (!target || !source) continue;
+        lines.push({ x1: source.cx, y1: source.cy, x2: target.cx, y2: target.cy, color: '#ef4444', dash: '3 3' });
+      }
+    }
+
+    return lines;
+  }, [gameState.agreements, gameState.sanctions, gameState.map.territories]);
+
   const tooltip = useMemo(() => {
     if (!hoveredTerritory) return null;
     const territory = gameState.map.territories[hoveredTerritory];
@@ -142,6 +187,21 @@ export default memo(function GameMap({
           Alaska ←
         </text>
 
+        {/* Diplomatic relationship lines */}
+        {diplomacyLines.map((line, i) => (
+          <line
+            key={`dip-${i}`}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            stroke={line.color}
+            strokeWidth={1.5}
+            strokeOpacity={0.5}
+            strokeDasharray={line.dash || undefined}
+          />
+        ))}
+
         {/* Territories */}
         {TERRITORY_SHAPES.map((shape) => {
           const territory = gameState.map.territories[shape.id];
@@ -176,6 +236,8 @@ export default memo(function GameMap({
             />
           );
         })}
+        {/* Animation overlay */}
+        {children}
       </svg>
 
       {/* Reset zoom button */}
@@ -201,6 +263,33 @@ export default memo(function GameMap({
           {tooltip.continent && (
             <div className="text-zinc-700 text-[10px] font-mono">
               {tooltip.continent.name} +{tooltip.continent.bonusTroops}
+            </div>
+          )}
+          {/* Terrain */}
+          {tooltip.territory.terrain && tooltip.territory.terrain !== 'plains' && (
+            <div className="text-zinc-500 text-[10px] font-mono">
+              {tooltip.territory.terrain === 'mountains' ? '⛰ Mountains +50% def' : '🌊 Coastal'}
+            </div>
+          )}
+          {/* Resources */}
+          {tooltip.territory.resources && Object.keys(tooltip.territory.resources).length > 0 && (
+            <div className="text-zinc-500 text-[10px] font-mono">
+              {tooltip.territory.resources.oil ? `🛢${tooltip.territory.resources.oil} ` : ''}
+              {tooltip.territory.resources.minerals ? `⛏${tooltip.territory.resources.minerals} ` : ''}
+              {tooltip.territory.resources.food ? `🌾${tooltip.territory.resources.food} ` : ''}
+              {tooltip.territory.resources.money ? `💰${tooltip.territory.resources.money}` : ''}
+            </div>
+          )}
+          {/* Fort */}
+          {(tooltip.territory.fortLevel ?? 0) > 0 && (
+            <div className="text-blue-400 text-[10px] font-mono">
+              🛡 Fort Lv {tooltip.territory.fortLevel} (+{(tooltip.territory.fortLevel ?? 0) * 20}% def)
+            </div>
+          )}
+          {/* Fallout */}
+          {(tooltip.territory.falloutTurns ?? 0) > 0 && (
+            <div className="text-amber-400 text-[10px] font-mono">
+              ☢️ Fallout: {tooltip.territory.falloutTurns} turns
             </div>
           )}
         </div>

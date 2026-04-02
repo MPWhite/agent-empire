@@ -1,12 +1,51 @@
 // Client-side type definitions mirroring the engine + server protocol
 // We duplicate rather than import to avoid build complexity with the engine package
 
+// ── Resources ──
+
+export type ResourceType = 'oil' | 'minerals' | 'food' | 'money';
+
+export interface Resources {
+  oil: number;
+  minerals: number;
+  food: number;
+  money: number;
+}
+
+// ── Tech ──
+
+export type TechBranch = 'military' | 'economic' | 'intelligence';
+
+export interface TechLevels {
+  military: number;    // 0-5
+  economic: number;    // 0-5
+  intelligence: number; // 0-5
+}
+
+// ── Shortage Tracking ──
+
+export interface ShortageCounters {
+  oil: number;
+  minerals: number;
+  food: number;
+}
+
+// ── Terrain ──
+
+export type Terrain = 'plains' | 'mountains' | 'coastal';
+
+// ── Core Entities ──
+
 export interface Territory {
   id: string;
   name: string;
   continentId: string;
   ownerId: string | null;
   troops: number;
+  terrain: Terrain;
+  resources: Partial<Resources>;
+  fortLevel: number;       // 0-3
+  falloutTurns: number;    // nuclear fallout countdown
 }
 
 export interface Continent {
@@ -21,7 +60,64 @@ export interface Player {
   name: string;
   color: string;
   isAlive: boolean;
+  resources: Resources;
+  tech: TechLevels;
+  reputation: number;           // 0-100
+  shortages: ShortageCounters;
 }
+
+// ── Diplomacy ──
+
+export type AgreementType = 'tradeDeal' | 'nonAggressionPact' | 'militaryAlliance';
+
+export interface Agreement {
+  id: string;
+  type: AgreementType;
+  parties: [string, string];
+  turnsRemaining: number | null; // null = indefinite
+  createdAtTurn: number;
+  tradeOffer?: { resource: ResourceType; amount: number };
+  tradeRequest?: { resource: ResourceType; amount: number };
+}
+
+export interface Sanction {
+  targetPlayerId: string;
+  supporters: string[];
+  imposedAtTurn: number;
+}
+
+export type UNResolutionType = 'nuclearBan' | 'demilitarizedZone' | 'ceasefire' | 'groupSanctions';
+
+export interface UNResolution {
+  id: string;
+  type: UNResolutionType;
+  proposedBy: string;
+  votes: Record<string, 'yes' | 'no' | null>;
+  turnsToVote: number;
+  details?: {
+    targetPlayerId?: string;
+    targetContinentId?: string;
+    durationTurns?: number;
+  };
+}
+
+export interface ActiveResolution {
+  type: UNResolutionType;
+  turnsRemaining: number;
+  details?: UNResolution['details'];
+}
+
+export interface DiplomaticMessage {
+  id: string;
+  fromPlayerId: string;
+  toPlayerId: string;
+  text: string;
+  sentAtTurn: number;
+  publicAtTurn: number;
+  isPublic: boolean;
+}
+
+// ── Map & State ──
 
 export interface SerializedGameMap {
   territories: Record<string, Territory>;
@@ -40,7 +136,16 @@ export interface SerializedGameState {
   phaseEndsAt?: string;
   agentCounts?: Record<string, number>;
   totalAgents?: number;
+  maxTurns?: number;
+  // Diplomacy
+  agreements: Agreement[];
+  sanctions: Sanction[];
+  diplomaticMessages: DiplomaticMessage[];
+  unResolutions: UNResolution[];
+  activeResolutions: ActiveResolution[];
 }
+
+// ── Actions ──
 
 export interface AttackAction {
   type: 'attack';
@@ -59,7 +164,8 @@ export interface ReinforceAction {
 
 export type PlayerAction = AttackAction | ReinforceAction;
 
-// Events
+// ── Events ──
+
 export interface BattleEvent {
   type: 'battle';
   attackerId: string;
@@ -99,12 +205,73 @@ export interface VictoryEvent {
   reason?: 'elimination' | 'dominance' | 'timer';
 }
 
+export interface ResearchEvent {
+  type: 'research';
+  playerId: string;
+  branch: TechBranch;
+  newLevel: number;
+}
+
+export interface MissileStrikeEvent {
+  type: 'missileStrike';
+  attackerId: string;
+  targetTerritoryId: string;
+  troopsDestroyed: number;
+  fortReduced: boolean;
+}
+
+export interface NukeEvent {
+  type: 'nuke';
+  attackerId: string;
+  targetTerritoryId: string;
+  primaryTroopsDestroyed: number;
+  collateralTerritories: string[];
+  retaliations: { playerId: string; targetTerritoryId: string; troopsDestroyed: number }[];
+}
+
+export interface DiplomacyEvent {
+  type: 'diplomacyEvent';
+  subtype: 'agreementFormed' | 'agreementBroken' | 'sanctionImposed' | 'sanctionLifted' | 'resolutionPassed' | 'resolutionFailed';
+  playerId: string;
+  targetPlayerId?: string;
+  details?: string;
+}
+
+export interface SpyEvent {
+  type: 'spyEvent';
+  subtype: 'intelGathered' | 'sabotageSuccess' | 'sabotageFailed' | 'techStolen' | 'spyDetected';
+  attackerId: string;
+  targetId: string;
+  details?: string;
+}
+
+export interface ResourceProductionEvent {
+  type: 'resourceProduction';
+  playerId: string;
+  produced: Resources;
+}
+
+export interface ShortageEvent {
+  type: 'shortage';
+  playerId: string;
+  resource: ResourceType;
+  consecutiveTurns: number;
+  effect: 'warning' | 'penalty' | 'critical';
+}
+
 export type GameEvent =
   | BattleEvent
   | ConquestEvent
   | ReinforcementEvent
   | EliminationEvent
-  | VictoryEvent;
+  | VictoryEvent
+  | ResearchEvent
+  | MissileStrikeEvent
+  | NukeEvent
+  | DiplomacyEvent
+  | SpyEvent
+  | ResourceProductionEvent
+  | ShortageEvent;
 
 export interface SerializedTurnResult {
   state: SerializedGameState;

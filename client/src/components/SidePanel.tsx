@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { SerializedGameState, AnalystReport, ChatMessage, Proposal, Player } from "@/lib/types";
+import type { SerializedGameState, AnalystReport, ChatMessage, Proposal, Player, GameEvent } from "@/lib/types";
 import type { TurnHistoryEntry, PlayerDeltas } from "@/lib/useTurnHistory";
 import NewsFeed from "./NewsFeed";
 import PlayerDetail from "./PlayerDetail";
@@ -27,6 +27,8 @@ interface SidePanelProps {
   teamProposals: Record<string, Proposal[]>;
   agentCounts: Record<string, number>;
   players: Record<string, Player>;
+  // Events for feed
+  events?: GameEvent[];
   // Mobile
   mobileOpen: boolean;
   onMobileClose: () => void;
@@ -48,6 +50,7 @@ export function SidePanel({
   teamProposals,
   agentCounts,
   players,
+  events = [],
   mobileOpen,
   onMobileClose,
   onMobileToggle,
@@ -183,11 +186,14 @@ export function SidePanel({
             </button>
           </div>
         ) : (
-          /* Default: War Desk reports */
+          /* Default: War Desk reports + event feed */
           <NewsFeed
             reports={reports}
             currentTurn={gameState.turnNumber}
             pendingTurns={pendingTurns}
+            events={events}
+            players={players}
+            territories={gameState.map.territories}
           />
         )}
       </div>

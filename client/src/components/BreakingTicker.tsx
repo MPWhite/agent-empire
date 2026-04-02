@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import type { AnalystReport } from "@/lib/types";
+import type { AnalystReport, GameEvent, Player, NukeEvent, ResearchEvent } from "@/lib/types";
 
 interface BreakingTickerProps {
   reports: AnalystReport[];
   onClickReport?: () => void;
+  events?: GameEvent[];
+  players?: Record<string, Player>;
+  territories?: Record<string, { name: string }>;
 }
 
-export function BreakingTicker({ reports, onClickReport }: BreakingTickerProps) {
+export function BreakingTicker({ reports, onClickReport, events = [], players = {}, territories = {} }: BreakingTickerProps) {
   const [visible, setVisible] = useState(false);
   const [currentReport, setCurrentReport] = useState<AnalystReport | null>(null);
   const lastSeenId = useRef<string | null>(null);
@@ -34,6 +37,49 @@ export function BreakingTicker({ reports, onClickReport }: BreakingTickerProps) 
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
     };
   }, [reports]);
+
+  // Generate breaking headlines from dramatic game events
+  const lastEventIndex = useRef(0);
+  useEffect(() => {
+    if (events.length <= lastEventIndex.current) return;
+    const newEvents = events.slice(lastEventIndex.current);
+    lastEventIndex.current = events.length;
+
+    for (const evt of newEvents) {
+      let headline = '';
+      if (evt.type === 'nuke') {
+        const e = evt as NukeEvent;
+        const attacker = players[e.attackerId]?.name ?? e.attackerId;
+        const target = territories[e.targetTerritoryId]?.name ?? e.targetTerritoryId;
+        headline = `☢️ ${attacker} launched a nuclear strike on ${target}!`;
+        if (e.retaliations.length > 0) {
+          headline += ` MAD retaliation triggered by ${e.retaliations.length} empire${e.retaliations.length > 1 ? 's' : ''}.`;
+        }
+      } else if (evt.type === 'research') {
+        const e = evt as ResearchEvent;
+        if (e.branch === 'military' && e.newLevel === 5) {
+          const p = players[e.playerId]?.name ?? e.playerId;
+          headline = `☢️ ${p} has achieved nuclear capability!`;
+        }
+      }
+
+      if (headline) {
+        const syntheticReport: AnalystReport = {
+          id: `breaking-evt-${Date.now()}-${Math.random()}`,
+          type: 'breaking',
+          turnRange: [0, 0],
+          text: headline,
+          isStreaming: false,
+          timestamp: Date.now(),
+        };
+        lastSeenId.current = syntheticReport.id;
+        setCurrentReport(syntheticReport);
+        setVisible(true);
+        if (dismissTimer.current) clearTimeout(dismissTimer.current);
+        dismissTimer.current = setTimeout(() => setVisible(false), 10000);
+      }
+    }
+  }, [events.length, players, territories]);
 
   if (!currentReport || !visible) return null;
 

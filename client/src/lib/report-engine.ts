@@ -28,11 +28,13 @@ export class ReportEngine {
     // Don't trigger if we're already generating
     if (this.generating) return null;
 
-    // Check for breaking events
+    // Check for breaking events (expanded for v2 mechanics)
     const breakingEvents = events.filter(
       (e) =>
         e.type === "elimination" ||
         e.type === "victory" ||
+        e.type === "nuke" ||
+        (e.type === "research" && e.branch === "military" && e.newLevel === 5) ||
         (e.type === "battle" && e.conquered && this.isContinentCapture(e, state))
     );
 

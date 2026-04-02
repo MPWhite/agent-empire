@@ -46,6 +46,11 @@ export function useHistoryMode(
         players: { ...liveState.players },
         turnNumber: msg.turnNumber,
         phase: 'playing',
+        agreements: liveState.agreements ?? [],
+        sanctions: liveState.sanctions ?? [],
+        diplomaticMessages: liveState.diplomaticMessages ?? [],
+        unResolutions: liveState.unResolutions ?? [],
+        activeResolutions: liveState.activeResolutions ?? [],
       };
 
       for (const [tid, data] of Object.entries(msg.snapshot.territories)) {

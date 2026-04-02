@@ -70,7 +70,22 @@ export default function PlayerLeaderboard({
               >
                 {player.name}
               </span>
-              <div className="flex gap-2 text-zinc-500 font-mono text-xs shrink-0">
+              <div className="flex items-center gap-2 text-zinc-500 font-mono text-xs shrink-0">
+                {player.isAlive && player.tech && (() => {
+                  const t = player.tech;
+                  const branches: { key: string; label: string; level: number }[] = [
+                    { key: 'mil', label: 'Mil', level: t.military },
+                    { key: 'eco', label: 'Eco', level: t.economic },
+                    { key: 'int', label: 'Int', level: t.intelligence },
+                  ];
+                  const top = branches.reduce((a, b) => b.level > a.level ? b : a);
+                  if (top.level === 0) return null;
+                  return (
+                    <span className="text-zinc-600 text-[9px]">
+                      {top.label}:{top.level}{t.military >= 5 ? ' ☢️' : t.military >= 4 ? ' 🚀' : ''}
+                    </span>
+                  );
+                })()}
                 <span>{s.territories}T</span>
                 <span>{s.troops}U</span>
               </div>

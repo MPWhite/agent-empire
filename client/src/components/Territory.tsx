@@ -27,11 +27,24 @@ export default function Territory({
   continentColor,
   viewBox,
 }: TerritoryProps) {
-  const fillColor = owner?.color ?? continentColor ?? "#3a5a40";
+  const hasFallout = (territory.falloutTurns ?? 0) > 0;
+
+  let fillColor = owner?.color ?? continentColor ?? "#3a5a40";
   let fillOpacity = owner ? Math.min(0.5 + (territory.troops / 30) * 0.4, 0.9) : 0.4;
+
+  // Fallout tint
+  if (hasFallout) {
+    fillColor = "#a16207"; // amber-700
+    fillOpacity = 0.4;
+  }
 
   let strokeColor = "#1a2740";
   let strokeWidth = 0.5;
+
+  if (hasFallout) {
+    strokeColor = "#fbbf24";
+    strokeWidth = 1.5;
+  }
 
   if (isHighlighted) {
     strokeColor = owner?.color ?? "#fbbf24";
@@ -51,6 +64,22 @@ export default function Territory({
   const zoomLevel = 2000 / viewBox.w;
   const labelScale = 1.8 / zoomLevel;
 
+  // Resource icons for this territory
+  const resourceIcons: { icon: string; key: string }[] = [];
+  const res = territory.resources;
+  if (res) {
+    if (res.oil) resourceIcons.push({ icon: "🛢", key: "oil" });
+    if (res.minerals) resourceIcons.push({ icon: "⛏", key: "minerals" });
+    if (res.food) resourceIcons.push({ icon: "🌾", key: "food" });
+    if (res.money) resourceIcons.push({ icon: "💰", key: "money" });
+  }
+
+  // Fort level
+  const fortLevel = territory.fortLevel ?? 0;
+
+  // Terrain
+  const terrain = territory.terrain ?? "plains";
+
   return (
     <g
       className="cursor-pointer"
@@ -67,7 +96,7 @@ export default function Territory({
         strokeLinejoin="round"
         className="transition-all duration-150 hover:brightness-125"
       />
-      {/* Labels: troop count + territory name — fade in when zoomed enough */}
+      {/* Labels: troop count + territory name + enrichments — fade in when zoomed enough */}
       <g
         transform={`translate(${shape.cx}, ${shape.cy}) scale(${labelScale}) translate(${-shape.cx}, ${-shape.cy})`}
         style={{
@@ -76,22 +105,10 @@ export default function Territory({
           pointerEvents: showLabels ? "auto" : "none",
         }}
       >
-        <circle cx={shape.cx} cy={shape.cy} r={14} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth={0.5} />
+        {/* Territory name */}
         <text
           x={shape.cx}
-          y={shape.cy + 1}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="white"
-          fontSize={12}
-          fontWeight="bold"
-          fontFamily="var(--font-geist-mono)"
-        >
-          {territory.troops}
-        </text>
-        <text
-          x={shape.cx}
-          y={shape.cy - 20}
+          y={shape.cy - 22}
           textAnchor="middle"
           fill="rgba(255,255,255,0.7)"
           fontSize={9}
@@ -99,6 +116,116 @@ export default function Territory({
         >
           {territory.name}
         </text>
+
+        {/* Troop count circle */}
+        <circle
+          cx={shape.cx}
+          cy={shape.cy}
+          r={14}
+          fill="rgba(0,0,0,0.7)"
+          stroke={hasFallout ? "rgba(251,191,36,0.5)" : "rgba(255,255,255,0.3)"}
+          strokeWidth={0.5}
+        />
+        <text
+          x={shape.cx}
+          y={shape.cy + 1}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={hasFallout ? "#fcd34d" : "white"}
+          fontSize={12}
+          fontWeight="bold"
+          fontFamily="var(--font-geist-mono)"
+        >
+          {territory.troops}
+        </text>
+
+        {/* Fort shields — left of troop circle */}
+        {fortLevel > 0 && (
+          <g>
+            {Array.from({ length: fortLevel }).map((_, i) => (
+              <text
+                key={i}
+                x={shape.cx - 20 - i * 8}
+                y={shape.cy + 4}
+                textAnchor="middle"
+                fontSize={8}
+                fill="#60a5fa"
+              >
+                🛡
+              </text>
+            ))}
+          </g>
+        )}
+
+        {/* Terrain icon — top-right */}
+        {terrain === "mountains" && (
+          <text
+            x={shape.cx + 18}
+            y={shape.cy - 8}
+            textAnchor="middle"
+            fontSize={10}
+            fill="rgba(255,255,255,0.7)"
+          >
+            ⛰
+          </text>
+        )}
+        {terrain === "coastal" && (
+          <text
+            x={shape.cx + 18}
+            y={shape.cy - 8}
+            textAnchor="middle"
+            fontSize={10}
+            fill="rgba(96,165,250,0.7)"
+          >
+            🌊
+          </text>
+        )}
+
+        {/* Fallout icon — replaces terrain icon */}
+        {hasFallout && (
+          <>
+            <text
+              x={shape.cx + 18}
+              y={shape.cy - 8}
+              textAnchor="middle"
+              fontSize={10}
+              fill="#fbbf24"
+            >
+              ☢️
+            </text>
+            <text
+              x={shape.cx}
+              y={shape.cy + 26}
+              textAnchor="middle"
+              fontSize={7}
+              fill="#fbbf24"
+              fontFamily="var(--font-geist-mono)"
+            >
+              {territory.falloutTurns}t
+            </text>
+          </>
+        )}
+
+        {/* Resource icons — below troop circle */}
+        {resourceIcons.length > 0 && !hasFallout && (
+          <g>
+            {resourceIcons.map((r, i) => {
+              const totalWidth = resourceIcons.length * 10;
+              const startX = shape.cx - totalWidth / 2 + 5;
+              return (
+                <text
+                  key={r.key}
+                  x={startX + i * 10}
+                  y={shape.cy + 26}
+                  textAnchor="middle"
+                  fontSize={7}
+                >
+                  {r.icon}
+                </text>
+              );
+            })}
+          </g>
+        )}
       </g>
     </g>
   );
