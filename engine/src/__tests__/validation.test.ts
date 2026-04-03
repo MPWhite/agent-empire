@@ -15,7 +15,7 @@ function setupGame(): GameState {
     { id: 'p7', name: 'Player 7' },
     { id: 'p8', name: 'Player 8' },
   ]);
-  return assignTerritories(state);
+  return assignTerritories(state, 91);
 }
 
 describe('validateAction', () => {

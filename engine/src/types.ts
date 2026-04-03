@@ -195,6 +195,7 @@ export interface GameState {
   players: Map<string, Player>;
   turnNumber: number;
   phase: GamePhase;
+  seed?: number;
   // New v2 state
   techProgress: Map<string, TechProgress>; // playerId → research progress
   agreements: Agreement[];
