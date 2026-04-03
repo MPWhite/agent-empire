@@ -72,6 +72,7 @@ export class AgentManager {
       apiKey,
       joinedAt: now,
       lastActiveAt: now,
+      isBot: false,
     };
 
     this.agents.set(agentId, agent);
@@ -170,6 +171,96 @@ export class AgentManager {
     for (const team of this.teams.values()) {
       team.proposals.clear();
       team.votes.clear();
+    }
+  }
+
+  // ── Bot Management ──
+
+  /**
+   * Register a bot agent on a specific team.
+   */
+  joinBot(teamId: string, players: Map<string, Player>): JoinResponse {
+    const player = players.get(teamId);
+    if (!player || !player.isAlive) {
+      throw new Error(`Team ${teamId} is not alive`);
+    }
+
+    const agentId = `agent-${crypto.randomBytes(4).toString('hex')}`;
+    const apiKey = `ak-${crypto.randomBytes(16).toString('hex')}`;
+    const now = Date.now();
+
+    const agent: Agent = {
+      id: agentId,
+      name: agentId,
+      teamId,
+      apiKey,
+      joinedAt: now,
+      lastActiveAt: now,
+      isBot: true,
+    };
+
+    this.agents.set(agentId, agent);
+    this.apiKeyIndex.set(apiKey, agentId);
+    this.teams.get(teamId)!.agents.set(agentId, agent);
+
+    return {
+      agentId,
+      teamId,
+      apiKey,
+      teamName: player.name,
+      teamColor: player.color,
+    };
+  }
+
+  /**
+   * Remove an agent (bot or real) from the game.
+   */
+  removeAgent(agentId: string): boolean {
+    const agent = this.agents.get(agentId);
+    if (!agent) return false;
+
+    this.agents.delete(agentId);
+    this.apiKeyIndex.delete(agent.apiKey);
+    this.usedNames.delete(agent.name.toLowerCase());
+    const teamState = this.teams.get(agent.teamId);
+    if (teamState) {
+      teamState.agents.delete(agentId);
+      teamState.votes.delete(agentId);
+    }
+    return true;
+  }
+
+  /**
+   * Get per-team bot/real agent counts for the backfill service.
+   */
+  getBotStatus(): Record<string, { realCount: number; botCount: number; botIds: string[] }> {
+    const status: Record<string, { realCount: number; botCount: number; botIds: string[] }> = {};
+    for (const [teamId, teamState] of this.teams) {
+      let realCount = 0;
+      let botCount = 0;
+      const botIds: string[] = [];
+      for (const agent of teamState.agents.values()) {
+        if (agent.isBot) {
+          botCount++;
+          botIds.push(agent.id);
+        } else {
+          realCount++;
+        }
+      }
+      status[teamId] = { realCount, botCount, botIds };
+    }
+    return status;
+  }
+
+  /**
+   * Clear all agents (called on game restart).
+   */
+  clearAllAgents(): void {
+    this.agents.clear();
+    this.apiKeyIndex.clear();
+    this.usedNames.clear();
+    for (const team of this.teams.values()) {
+      team.agents.clear();
     }
   }
 }

@@ -370,6 +370,7 @@ export class GameManagerV2 {
     this.clearPauseChecker();
     this.turnActive = false;
     this.state = this.createFreshGame();
+    this.agentManager.clearAllAgents();
     this.agentManager.initTeams(this.state.players);
     this.history = createHistory(this.state);
     saveHistory(this.history);

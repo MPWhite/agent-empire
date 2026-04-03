@@ -269,6 +269,68 @@ export function createApiRouter(
     }
   });
 
+  // ── Bot Service (shared secret auth) ──
+
+  const BOT_SERVICE_KEY = process.env.BOT_SERVICE_KEY;
+
+  function requireBotServiceAuth(req: Request, res: Response, next: NextFunction): void {
+    if (!BOT_SERVICE_KEY) {
+      res.status(503).json({ error: 'Bot service not configured', code: 'BOT_SERVICE_DISABLED' });
+      return;
+    }
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${BOT_SERVICE_KEY}`) {
+      res.status(401).json({ error: 'Invalid bot service key', code: 'INVALID_BOT_KEY' });
+      return;
+    }
+    next();
+  }
+
+  router.get('/bots/status', requireBotServiceAuth, (_req: Request, res: Response) => {
+    res.json(agentManager.getBotStatus());
+  });
+
+  router.post('/bots/join', requireBotServiceAuth, (req: Request, res: Response) => {
+    const { teamId, name } = req.body;
+    if (!teamId || typeof teamId !== 'string') {
+      res.status(400).json({ error: 'teamId is required', code: 'INVALID_TEAM' });
+      return;
+    }
+    try {
+      const result = agentManager.joinBot(teamId, gameManager.getPlayers());
+      if (name) {
+        agentManager.setAgentName(result.agentId, name);
+      }
+      chatManager.addSystemMessage(teamId, `${name || result.agentId} has joined the team.`);
+      gameManager.tryResumeTurnCycle();
+      res.status(201).json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message, code: 'BOT_JOIN_FAILED' });
+    }
+  });
+
+  router.post('/bots/leave', requireBotServiceAuth, (req: Request, res: Response) => {
+    const { agentId } = req.body;
+    if (!agentId || typeof agentId !== 'string') {
+      res.status(400).json({ error: 'agentId is required', code: 'INVALID_AGENT' });
+      return;
+    }
+    const agent = agentManager.getAgent(agentId);
+    if (!agent) {
+      res.status(404).json({ error: 'Agent not found', code: 'AGENT_NOT_FOUND' });
+      return;
+    }
+    if (!agent.isBot) {
+      res.status(400).json({ error: 'Cannot remove a non-bot agent', code: 'NOT_A_BOT' });
+      return;
+    }
+    const name = agent.name;
+    const teamId = agent.teamId;
+    agentManager.removeAgent(agentId);
+    chatManager.addSystemMessage(teamId, `${name} has left the team.`);
+    res.json({ removed: agentId });
+  });
+
   // ── Spectator (no auth) ──
 
   router.get('/spectate/state', (_req: Request, res: Response) => {

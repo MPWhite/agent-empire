@@ -9,6 +9,7 @@ export interface Agent {
   apiKey: string;      // Auth token for API requests
   joinedAt: number;    // Timestamp
   lastActiveAt: number; // Updated on every authenticated request
+  isBot: boolean;      // True for backfill bots (server-internal, never exposed to clients)
 }
 
 // ── Proposal (an action plan submitted by an agent for team voting) ──
