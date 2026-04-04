@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import type { MajorEvent } from "@/lib/types";
-import { TERRITORY_SHAPES, CONTINENT_COLORS } from "@/lib/map-paths";
 
 interface StoryRecapProps {
   majorEvents: MajorEvent[];
@@ -10,6 +9,74 @@ interface StoryRecapProps {
   currentSituation?: string;
   currentTurn: number;
   onDismiss: () => void;
+}
+
+const MAX_RECAP_PANELS = 3;
+
+/**
+ * Condense a potentially long list of major events into at most MAX_RECAP_PANELS
+ * summary panels that give viewers the key storylines.
+ *
+ * Priority: eliminations & victories first, then continent captures, then wars.
+ * If there are more events than slots, group wars together and summarize.
+ */
+function summarizeEvents(events: MajorEvent[], playerNames: Record<string, { name: string; color: string }>): MajorEvent[] {
+  if (events.length <= MAX_RECAP_PANELS) return events;
+
+  // Separate by priority
+  const eliminations = events.filter(e => e.type === 'elimination' || e.type === 'victory');
+  const captures = events.filter(e => e.type === 'continent_capture');
+  const wars = events.filter(e => e.type === 'major_war');
+  const starts = events.filter(e => e.type === 'game_start');
+
+  const picked: MajorEvent[] = [];
+
+  // Always include game_start if it has a summary
+  const start = starts[0];
+  if (start?.summary) {
+    picked.push(start);
+  }
+
+  // Add eliminations/victories (most dramatic)
+  for (const e of eliminations) {
+    if (picked.length >= MAX_RECAP_PANELS) break;
+    picked.push(e);
+  }
+
+  // Add continent captures
+  for (const e of captures) {
+    if (picked.length >= MAX_RECAP_PANELS) break;
+    picked.push(e);
+  }
+
+  // If we still have room, add wars
+  for (const e of wars) {
+    if (picked.length >= MAX_RECAP_PANELS) break;
+    picked.push(e);
+  }
+
+  // If we had to skip things, merge remaining wars into the last war panel
+  if (picked.length >= MAX_RECAP_PANELS && wars.length > 1) {
+    const includedWars = picked.filter(e => e.type === 'major_war');
+    const skippedWars = wars.filter(w => !includedWars.includes(w));
+    if (skippedWars.length > 0 && includedWars.length > 0) {
+      const lastWar = includedWars[includedWars.length - 1];
+      const allWarPlayers = new Set([...lastWar.playerIds, ...skippedWars.flatMap(w => w.playerIds)]);
+      lastWar.label = `${wars.length} major conflicts`;
+      lastWar.summary = lastWar.summary || `Multiple empires clashed across the map.`;
+      lastWar.playerIds = [...allWarPlayers];
+    }
+  }
+
+  // Sort by turn number
+  picked.sort((a, b) => a.turnNumber - b.turnNumber);
+
+  // If we ended up with nothing meaningful, just take the most recent events
+  if (picked.length === 0) {
+    return events.slice(-MAX_RECAP_PANELS);
+  }
+
+  return picked.slice(0, MAX_RECAP_PANELS);
 }
 
 const EVENT_TYPE_STYLES: Record<string, { tag: string; tagColor: string; tagBg: string }> = {
@@ -31,15 +98,15 @@ export default function StoryRecap({
 
   type Panel = { type: 'event'; event: MajorEvent } | { type: 'current'; event: null };
 
-  // Build panels: major events + final "current situation" panel
   const panels = useMemo((): Panel[] => {
-    const items: Panel[] = majorEvents.map((event) => ({
+    const condensed = summarizeEvents(majorEvents, playerNames);
+    const items: Panel[] = condensed.map((event) => ({
       type: 'event' as const,
       event,
     }));
     items.push({ type: 'current', event: null });
     return items;
-  }, [majorEvents]);
+  }, [majorEvents, playerNames]);
 
   const totalPanels = panels.length;
   const isLast = currentIndex === totalPanels - 1;
@@ -60,11 +127,9 @@ export default function StoryRecap({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
-      {/* Content */}
-      <div className="relative w-full max-w-2xl mx-4">
+      <div className="relative w-full max-w-lg mx-4">
         <div className="border border-zinc-800 bg-zinc-950 rounded-lg shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="px-6 py-3 border-b border-zinc-800/50 flex items-center justify-between">
@@ -88,23 +153,19 @@ export default function StoryRecap({
           </div>
 
           {/* Panel content */}
-          <div className="px-6 py-8 min-h-[300px] flex flex-col justify-center">
+          <div className="px-6 py-8 min-h-[200px] flex flex-col justify-center">
             {panel.type === 'event' ? (
-              <EventPanel
-                event={panel.event}
-                playerNames={playerNames}
-              />
+              <EventPanel event={panel.event} playerNames={playerNames} />
             ) : (
               <CurrentSituationPanel
                 situation={currentSituation}
                 currentTurn={currentTurn}
-                playerNames={playerNames}
                 onEnter={onDismiss}
               />
             )}
           </div>
 
-          {/* Footer: navigation + progress */}
+          {/* Footer */}
           <div className="px-6 py-3 border-t border-zinc-800/50 flex items-center justify-between">
             <button
               onClick={goPrev}
@@ -114,7 +175,6 @@ export default function StoryRecap({
               &larr; Prev
             </button>
 
-            {/* Progress dots */}
             <div className="flex gap-1.5">
               {panels.map((_, i) => (
                 <div
@@ -152,8 +212,7 @@ function EventPanel({
 
   return (
     <div>
-      {/* Turn + tag */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <span className="text-[9px] font-mono text-zinc-600">TURN {event.turnNumber}</span>
         <span
           className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded"
@@ -163,28 +222,16 @@ function EventPanel({
         </span>
       </div>
 
-      {/* Territory illustration */}
-      <div className="mb-4 flex justify-center">
-        <TerritoryIllustration
-          territoryIds={event.territoryIds}
-          playerIds={event.playerIds}
-          playerNames={playerNames}
-        />
-      </div>
-
-      {/* Headline */}
       <h3 className="text-lg font-semibold text-zinc-100 mb-2">
         {event.label}
       </h3>
 
-      {/* Narrative */}
       {event.summary && (
         <p className="text-sm text-zinc-400 leading-relaxed mb-4">
           {event.summary}
         </p>
       )}
 
-      {/* Player indicators */}
       <div className="flex gap-3 flex-wrap">
         {event.playerIds.map((pid) => {
           const p = playerNames[pid];
@@ -207,12 +254,10 @@ function EventPanel({
 function CurrentSituationPanel({
   situation,
   currentTurn,
-  playerNames,
   onEnter,
 }: {
   situation?: string;
   currentTurn: number;
-  playerNames: Record<string, { name: string; color: string }>;
   onEnter: () => void;
 }) {
   return (
@@ -235,70 +280,5 @@ function CurrentSituationPanel({
         Watch it unfold live
       </button>
     </div>
-  );
-}
-
-function TerritoryIllustration({
-  territoryIds,
-  playerIds,
-  playerNames,
-}: {
-  territoryIds: string[];
-  playerIds: string[];
-  playerNames: Record<string, { name: string; color: string }>;
-}) {
-  // Find matching territory shapes
-  const shapes = territoryIds
-    .map((id) => TERRITORY_SHAPES.find((s) => s.id === id))
-    .filter(Boolean)
-    .slice(0, 8); // limit to avoid visual clutter
-
-  if (shapes.length === 0) {
-    // Fallback: show player color circles
-    return (
-      <div className="flex items-center gap-3 py-4">
-        {playerIds.map((pid) => {
-          const p = playerNames[pid];
-          if (!p) return null;
-          return (
-            <div
-              key={pid}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style={{ backgroundColor: p.color }}
-            >
-              {p.name.charAt(0)}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // Calculate bounding box for all territories
-  const allBboxes = shapes.map((s) => s!.bbox);
-  const minX = Math.min(...allBboxes.map((b) => b.x));
-  const minY = Math.min(...allBboxes.map((b) => b.y));
-  const maxX = Math.max(...allBboxes.map((b) => b.x + b.w));
-  const maxY = Math.max(...allBboxes.map((b) => b.y + b.h));
-  const padding = 20;
-  const viewBox = `${minX - padding} ${minY - padding} ${maxX - minX + padding * 2} ${maxY - minY + padding * 2}`;
-
-  // Assign colors: first player gets first color, etc.
-  const primaryColor = playerNames[playerIds[0]]?.color ?? '#555';
-  const secondaryColor = playerNames[playerIds[1]]?.color ?? '#333';
-
-  return (
-    <svg viewBox={viewBox} className="w-full max-w-xs h-24 opacity-60">
-      {shapes.map((shape, i) => (
-        <path
-          key={shape!.id}
-          d={shape!.path}
-          fill={i % 2 === 0 ? primaryColor : secondaryColor}
-          opacity={0.7}
-          stroke="rgba(255,255,255,0.1)"
-          strokeWidth={0.5}
-        />
-      ))}
-    </svg>
   );
 }
