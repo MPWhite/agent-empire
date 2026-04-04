@@ -21,6 +21,7 @@ interface EventCardProps {
   turnNumber: number;
   players: Record<string, Player>;
   territories: Record<string, { name: string }>;
+  contextLine?: string;
 }
 
 const EVENT_STYLES: Record<string, { icon: string; label: string; borderColor: string; labelColor: string }> = {
@@ -51,7 +52,7 @@ function PlayerName({ players, id }: { players: Record<string, Player>; id: stri
   return <span style={{ color: p.color }} className="font-bold">{p.name}</span>;
 }
 
-export default function EventCard({ event, turnNumber, players, territories }: EventCardProps) {
+export default function EventCard({ event, turnNumber, players, territories, contextLine }: EventCardProps) {
   const style = EVENT_STYLES[event.type] ?? { icon: '📋', label: event.type, borderColor: '#52525b', labelColor: '#71717a' };
 
   // Skip noisy events
@@ -238,6 +239,18 @@ export default function EventCard({ event, turnNumber, players, territories }: E
         <div className="text-[11px] font-mono text-zinc-300 leading-relaxed">
           {description}
         </div>
+        {contextLine && (
+          <div
+            className="mx-3 mb-2 text-[10px] leading-relaxed px-2.5 py-2 rounded-r"
+            style={{
+              color: '#c4b5fd',
+              backgroundColor: 'rgba(46, 16, 101, 0.15)',
+              borderLeft: '2px solid rgba(124, 58, 237, 0.3)',
+            }}
+          >
+            {contextLine}
+          </div>
+        )}
       </div>
     </div>
   );
