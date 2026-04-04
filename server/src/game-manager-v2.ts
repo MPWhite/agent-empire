@@ -22,6 +22,8 @@ import {
   type GameHistory,
 } from './history.js';
 import { generateEventSummary } from './history-summaries.js';
+import { generateTurnNarrative, type TurnNarrative } from './narrative-engine.js';
+import { buildCurrentSituation } from './history.js';
 import {
   serializeGameState,
   serializeTurnResult,
@@ -52,6 +54,7 @@ export class GameManagerV2 {
   private phaseStartedAt: number = 0;
   private turnActive = false;
   private pauseChecker: ReturnType<typeof setInterval> | null = null;
+  private recentEvents: import('engine').GameEvent[] = [];
 
   constructor() {
     this.agentManager = new AgentManager();
@@ -174,7 +177,7 @@ export class GameManagerV2 {
     this.startPhase();
   }
 
-  private resolveTurn(): void {
+  private async resolveTurn(): Promise<void> {
     console.log(`  Resolving turn ${this.state.turnNumber}...`);
 
     // Collect winning proposals from each alive team
@@ -222,12 +225,34 @@ export class GameManagerV2 {
     }
     saveHistory(this.history);
 
+    // Generate narrative (non-blocking — broadcast even if it fails)
+    const chatSnapshot: Record<string, import('./types.js').ChatMessage[]> = {};
+    for (const [teamId, teamState] of this.agentManager.getAllTeamStates()) {
+      chatSnapshot[teamId] = teamState.chat.slice(-20); // last 20 msgs per team
+    }
+
+    let narrative: TurnNarrative | undefined;
+    try {
+      narrative = await generateTurnNarrative(
+        result.events,
+        chatSnapshot,
+        this.state,
+        this.recentEvents,
+      );
+    } catch {
+      // Graceful degradation — broadcast without narrative
+    }
+
+    // Buffer recent events for trend detection (keep last 5 turns worth)
+    this.recentEvents = [...this.recentEvents, ...result.events].slice(-200);
+
     // Broadcast results (enrich state with team data)
     this.broadcast({
       type: 'turn_result',
       result: {
         state: this.getPublicState(),
         events: result.events,
+        narrative,
       },
     });
 
@@ -325,6 +350,7 @@ export class GameManagerV2 {
           totalTurns: this.history.turns.length,
           majorEvents: this.history.majorEvents,
           playerNames: this.history.playerNames,
+          currentSituation: buildCurrentSituation(this.state, this.history),
         });
         break;
       case 'request_turn':

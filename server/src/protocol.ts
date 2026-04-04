@@ -16,6 +16,7 @@ import type {
 } from 'engine';
 import { EMPTY_RESOURCES } from 'engine';
 import type { MajorEvent, TurnSnapshot } from './history.js';
+import type { TurnNarrative } from './narrative-engine.js';
 
 // ── Client → Server Messages ──
 
@@ -67,6 +68,7 @@ export interface HistoryMetaMessage {
   totalTurns: number;
   majorEvents: MajorEvent[];
   playerNames: Record<string, { name: string; color: string }>;
+  currentSituation?: string;
 }
 
 export interface TurnSnapshotMessage {
@@ -110,6 +112,7 @@ export interface SerializedGameState {
 export interface SerializedTurnResult {
   state: SerializedGameState;
   events: any[];
+  narrative?: TurnNarrative;
 }
 
 export function serializeGameState(state: GameState): SerializedGameState {
