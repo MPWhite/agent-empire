@@ -204,6 +204,21 @@ async function main() {
       for (const [teamId, counts] of Object.entries(status as BotStatus)) {
         const needed = Math.max(0, MIN_PER_TEAM - counts.realCount);
 
+        // Detect orphaned bots (server knows them, we don't have their keys)
+        // This happens after a restart/redeploy — remove them so we can create fresh ones
+        const orphanedIds = counts.botIds.filter((id) => !bots.has(id));
+        if (orphanedIds.length > 0) {
+          log(null, `Cleaning up ${orphanedIds.length} orphaned bot(s) on ${teamId}`);
+          for (const agentId of orphanedIds) {
+            await botApi('/bots/leave', {
+              method: 'POST',
+              body: JSON.stringify({ agentId }),
+            });
+          }
+          // Skip the rest of this cycle — next poll will see the cleaned state and add fresh bots
+          continue;
+        }
+
         if (counts.botCount < needed) {
           // Add bots
           const toAdd = needed - counts.botCount;
