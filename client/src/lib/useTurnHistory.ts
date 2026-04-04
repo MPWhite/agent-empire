@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import type { SerializedGameState } from "./types";
+import type { SerializedGameState, TurnHistoryMessage } from "./types";
 
 export interface TurnHistoryEntry {
   turn: number;
@@ -15,10 +15,38 @@ export interface TurnHistory {
   deltas: PlayerDeltas;
 }
 
-export function useTurnHistory(gameState: SerializedGameState | null): TurnHistory {
+export function useTurnHistory(
+  gameState: SerializedGameState | null,
+  initialTurnHistory?: TurnHistoryMessage['turns'] | null,
+): TurnHistory {
   const historyRef = useRef<TurnHistoryEntry[]>([]);
   const lastTurnRef = useRef<number>(0);
+  const seededRef = useRef(false);
   const [deltas, setDeltas] = useState<PlayerDeltas>({});
+
+  // Seed from server turn history on initial load
+  useEffect(() => {
+    if (!initialTurnHistory || initialTurnHistory.length === 0 || seededRef.current) return;
+    seededRef.current = true;
+
+    const entries: TurnHistoryEntry[] = initialTurnHistory.map((snap) => {
+      const playerStats: Record<string, { territories: number; troops: number }> = {};
+      for (const pid of Object.keys(snap.players)) {
+        playerStats[pid] = { territories: 0, troops: 0 };
+      }
+      for (const t of Object.values(snap.territories)) {
+        if (t.ownerId && playerStats[t.ownerId]) {
+          playerStats[t.ownerId].territories++;
+          playerStats[t.ownerId].troops += t.troops;
+        }
+      }
+      return { turn: snap.turnNumber, players: playerStats };
+    });
+
+    historyRef.current = entries;
+    lastTurnRef.current = entries[entries.length - 1].turn;
+    setDeltas({});
+  }, [initialTurnHistory]);
 
   useEffect(() => {
     if (!gameState) return;

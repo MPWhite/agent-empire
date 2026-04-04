@@ -31,10 +31,11 @@ export default function Home() {
     onHistoryMeta,
     onTurnSnapshot,
     narrative,
+    initialTurnHistory,
   } = useGameSocket();
 
   const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
-  const turnHistory = useTurnHistory(gameState);
+  const turnHistory = useTurnHistory(gameState, initialTurnHistory);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);

@@ -321,6 +321,14 @@ export class GameManagerV2 {
       });
     }
 
+    // Send turn history so Territory Control chart populates immediately
+    if (this.history.turns.length > 0) {
+      this.send(ws, {
+        type: 'turn_history',
+        turns: this.history.turns,
+      });
+    }
+
     // Send existing chat history so late-joining spectators see the conversation
     for (const [teamId, teamState] of this.agentManager.getAllTeamStates()) {
       for (const message of teamState.chat) {

@@ -395,6 +395,11 @@ export interface VoteUpdateEvent {
   totalVotes: number;
 }
 
+export interface TurnHistoryMessage {
+  type: 'turn_history';
+  turns: { turnNumber: number; territories: Record<string, { ownerId: string | null; troops: number }>; players: Record<string, { isAlive: boolean }> }[];
+}
+
 // Server messages
 export type ServerMessage =
   | { type: 'game_state'; state: SerializedGameState }
@@ -402,6 +407,7 @@ export type ServerMessage =
   | { type: 'error'; message: string }
   | HistoryMetaMessage
   | TurnSnapshotMessage
+  | TurnHistoryMessage
   | ChatMessageEvent
   | PhaseChangeEvent
   | ProposalUpdateEvent
