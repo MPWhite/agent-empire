@@ -219,3 +219,26 @@ export function detectMajorEvents(
 
   return detected;
 }
+
+export function buildCurrentSituation(state: GameState, history: GameHistory): string {
+  const counts: Record<string, number> = {};
+  for (const [, t] of state.map.territories) {
+    if (t.ownerId) counts[t.ownerId] = (counts[t.ownerId] ?? 0) + 1;
+  }
+
+  const ranked = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, count]) => {
+      const name = history.playerNames[id]?.name ?? id;
+      return `${name}: ${count} territories`;
+    });
+
+  const alive = [...state.players.values()].filter(p => p.isAlive).length;
+  const eliminated = [...state.players.values()].filter(p => !p.isAlive).length;
+
+  let situation = `Turn ${state.turnNumber}. ${ranked[0]} leads. ${alive} empires remain`;
+  if (eliminated > 0) situation += `, ${eliminated} eliminated`;
+  situation += '.';
+
+  return situation;
+}
