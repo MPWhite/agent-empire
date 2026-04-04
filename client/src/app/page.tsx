@@ -5,8 +5,9 @@ import { useGameSocket } from "@/lib/socket";
 import { useHistoryMode } from "@/lib/useHistoryMode";
 import { ReportEngine } from "@/lib/report-engine";
 import { useTurnHistory } from "@/lib/useTurnHistory";
-import type { AnalystReport } from "@/lib/types";
+import type { AnalystReport, MajorEvent } from "@/lib/types";
 import GameMap from "@/components/GameMap";
+import StoryRecap from "@/components/StoryRecap";
 import MapAnimations from "@/components/MapAnimations";
 import HistoryPlayer from "@/components/HistoryPlayer";
 import { CommandBar } from "@/components/CommandBar";
@@ -41,6 +42,14 @@ export default function Home() {
   const [pendingTurns, setPendingTurns] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const whatIsThis = useWhatIsThisModal();
+
+  // ── Story Recap ──
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapData, setRecapData] = useState<{
+    majorEvents: MajorEvent[];
+    playerNames: Record<string, { name: string; color: string }>;
+    currentSituation?: string;
+  } | null>(null);
 
   // ── Report Engine ──
   const reportEngineRef = useRef(new ReportEngine(10));
@@ -125,6 +134,40 @@ export default function Home() {
     }
   }
 
+  // Request history for recap when game loads
+  const recapRequested = useRef(false);
+  useEffect(() => {
+    if (!gameState || recapRequested.current) return;
+    recapRequested.current = true;
+
+    onHistoryMeta((msg) => {
+      if (msg.majorEvents.length > 0) {
+        setRecapData({
+          majorEvents: msg.majorEvents,
+          playerNames: msg.playerNames,
+          currentSituation: (msg as any).currentSituation,
+        });
+
+        const dismissed = localStorage.getItem("agent-empires-recap-dismissed");
+        if (!dismissed) {
+          setShowRecap(true);
+        }
+      }
+      onHistoryMeta(null);
+    });
+
+    sendMessage({ type: "request_history" });
+  }, [gameState, onHistoryMeta, sendMessage]);
+
+  const handleDismissRecap = useCallback(() => {
+    setShowRecap(false);
+    localStorage.setItem("agent-empires-recap-dismissed", "1");
+  }, []);
+
+  const handleShowRecap = useCallback(() => {
+    setShowRecap(true);
+  }, []);
+
   // Reset on new game
   const prevTurnRef = useRef(gameState?.turnNumber);
   useEffect(() => {
@@ -135,6 +178,9 @@ export default function Home() {
       reportEngineRef.current.reset();
       setSelectedPlayerId(null);
       setPendingTurns(0);
+      recapRequested.current = false;
+      setRecapData(null);
+      setShowRecap(false);
     }
     prevTurnRef.current = gameState?.turnNumber;
   }, [gameState?.turnNumber, gameState]);
@@ -187,6 +233,16 @@ export default function Home() {
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       <WhatIsThisModal open={whatIsThis.open} onClose={whatIsThis.close} />
 
+      {showRecap && recapData && (
+        <StoryRecap
+          majorEvents={recapData.majorEvents}
+          playerNames={recapData.playerNames}
+          currentSituation={recapData.currentSituation}
+          currentTurn={gameState.turnNumber}
+          onDismiss={handleDismissRecap}
+        />
+      )}
+
       {/* Unified Command Bar */}
       <CommandBar
         turnNumber={gameState.turnNumber}
@@ -199,6 +255,8 @@ export default function Home() {
         historyActive={history.isActive}
         onToggleHistory={history.isActive ? history.closeTimeline : history.openTimeline}
         onWhatIsThis={whatIsThis.show}
+        onRecap={handleShowRecap}
+        hasRecapData={recapData !== null}
       />
 
       {/* History player overlay */}

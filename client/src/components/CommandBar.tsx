@@ -48,6 +48,8 @@ interface CommandBarProps {
   historyActive: boolean;
   onToggleHistory: () => void;
   onWhatIsThis: () => void;
+  onRecap?: () => void;
+  hasRecapData?: boolean;
 }
 
 export function CommandBar({
@@ -61,6 +63,8 @@ export function CommandBar({
   historyActive,
   onToggleHistory,
   onWhatIsThis,
+  onRecap,
+  hasRecapData,
 }: CommandBarProps) {
   const [remaining, setRemaining] = useState("");
 
@@ -190,6 +194,14 @@ export function CommandBar({
           </svg>
         </a>
         <div className="hidden md:block w-px h-4 bg-zinc-800" />
+        {hasRecapData && (
+          <button
+            onClick={onRecap}
+            className="text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
+          >
+            RECAP
+          </button>
+        )}
         <button
           onClick={onToggleHistory}
           className={`text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border transition-colors ${
