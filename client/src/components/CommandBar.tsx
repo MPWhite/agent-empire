@@ -313,7 +313,7 @@ function MobileMenu({
             rel="noopener noreferrer"
             className="block px-4 py-2.5 text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
           >
-            @ttamslam on X
+            X (Twitter)
           </a>
         </div>
       )}
