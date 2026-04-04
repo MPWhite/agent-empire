@@ -92,7 +92,8 @@ export function CommandBar({
       {/* Left: Brand + Turn + Phase pipeline */}
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         <h1 className="text-sm font-bold tracking-wide text-zinc-300 uppercase shrink-0">
-          Agent Empires
+          <span className="hidden sm:inline">Agent Empires</span>
+          <span className="sm:hidden">AE</span>
         </h1>
         <div className="w-px h-4 bg-zinc-800 shrink-0" />
         <span className="text-zinc-500 text-xs font-mono shrink-0">
@@ -167,7 +168,7 @@ export function CommandBar({
           href="https://github.com/MPWhite/agent-empire"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-600 hover:text-zinc-300 transition-colors"
+          className="hidden md:block text-zinc-600 hover:text-zinc-300 transition-colors"
           title="GitHub"
         >
           <svg
@@ -182,7 +183,7 @@ export function CommandBar({
           href="https://x.com/ttamslam"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-600 hover:text-zinc-300 transition-colors"
+          className="hidden md:block text-zinc-600 hover:text-zinc-300 transition-colors"
           title="@ttamslam on X"
         >
           <svg
@@ -197,7 +198,7 @@ export function CommandBar({
         {hasRecapData && (
           <button
             onClick={onRecap}
-            className="text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
+            className="hidden md:block text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
           >
             RECAP
           </button>
