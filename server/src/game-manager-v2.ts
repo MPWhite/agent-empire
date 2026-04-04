@@ -310,6 +310,17 @@ export class GameManagerV2 {
     this.spectators.add(ws);
     this.send(ws, { type: 'game_state', state: this.getPublicState() });
 
+    // Send buffered events so the War Desk populates immediately
+    if (this.recentEvents.length > 0) {
+      this.send(ws, {
+        type: 'turn_result',
+        result: {
+          state: this.getPublicState(),
+          events: this.recentEvents,
+        },
+      });
+    }
+
     // Send existing chat history so late-joining spectators see the conversation
     for (const [teamId, teamState] of this.agentManager.getAllTeamStates()) {
       for (const message of teamState.chat) {
