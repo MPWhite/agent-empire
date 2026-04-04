@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { AnalystReport, GameEvent, Player } from "@/lib/types";
+import type { AnalystReport, GameEvent, Player, TurnNarrative, CommsHighlight } from "@/lib/types";
 import ReportCard from "./ReportCard";
 import EventCard from "./EventCard";
+import CommsHighlightCard from "./CommsHighlightCard";
 
 interface NewsFeedProps {
   reports: AnalystReport[];
@@ -12,12 +13,14 @@ interface NewsFeedProps {
   events?: GameEvent[];
   players?: Record<string, Player>;
   territories?: Record<string, { name: string }>;
+  narrative?: TurnNarrative | null;
 }
 
 // Tag each item with a sort key so we can interleave reports and events
 type FeedItem =
   | { kind: 'report'; report: AnalystReport; sortKey: number }
-  | { kind: 'event'; event: GameEvent; turnNumber: number; sortKey: number };
+  | { kind: 'event'; event: GameEvent; turnNumber: number; sortKey: number; contextLine?: string }
+  | { kind: 'commsHighlight'; highlight: CommsHighlight; turnNumber: number; sortKey: number };
 
 export default function NewsFeed({
   reports,
@@ -26,6 +29,7 @@ export default function NewsFeed({
   events = [],
   players = {},
   territories = {},
+  narrative,
 }: NewsFeedProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -41,14 +45,29 @@ export default function NewsFeed({
     (e) => e.type !== 'resourceProduction' && e.type !== 'reinforcement'
   );
 
-  // Add events (use index as a rough sort key — newer events are at higher indices)
+  // Add events with optional context lines
   for (let i = 0; i < significantEvents.length; i++) {
-    items.push({ kind: 'event', event: significantEvents[i], turnNumber: currentTurn, sortKey: i });
+    const contextLine = narrative?.contextLines.find(
+      (cl) => cl.eventIndex === events.indexOf(significantEvents[i])
+    )?.context;
+    items.push({ kind: 'event', event: significantEvents[i], turnNumber: currentTurn, sortKey: i, contextLine });
   }
 
-  // Add reports (placed after events — they summarize what happened)
+  // Add comms highlights
+  if (narrative?.commsHighlights) {
+    for (let i = 0; i < narrative.commsHighlights.length; i++) {
+      items.push({
+        kind: 'commsHighlight',
+        highlight: narrative.commsHighlights[i],
+        turnNumber: currentTurn,
+        sortKey: significantEvents.length + i,
+      });
+    }
+  }
+
+  // Add reports (placed after events + comms)
   for (let i = 0; i < reports.length; i++) {
-    items.push({ kind: 'report', report: reports[i], sortKey: significantEvents.length + i });
+    items.push({ kind: 'report', report: reports[i], sortKey: significantEvents.length + (narrative?.commsHighlights?.length ?? 0) + i });
   }
 
   return (
@@ -82,6 +101,16 @@ export default function NewsFeed({
           if (item.kind === 'report') {
             return <ReportCard key={`r-${item.report.id}`} report={item.report} />;
           }
+          if (item.kind === 'commsHighlight') {
+            return (
+              <CommsHighlightCard
+                key={`ch-${i}`}
+                highlight={item.highlight}
+                turnNumber={item.turnNumber}
+                players={players}
+              />
+            );
+          }
           return (
             <EventCard
               key={`e-${i}`}
@@ -89,6 +118,7 @@ export default function NewsFeed({
               turnNumber={item.turnNumber}
               players={players}
               territories={territories}
+              contextLine={item.contextLine}
             />
           );
         })}

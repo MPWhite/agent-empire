@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { SerializedGameState, AnalystReport, ChatMessage, Proposal, Player, GameEvent } from "@/lib/types";
+import type { SerializedGameState, AnalystReport, ChatMessage, Proposal, Player, GameEvent, TurnNarrative } from "@/lib/types";
 import type { TurnHistoryEntry, PlayerDeltas } from "@/lib/useTurnHistory";
 import NewsFeed from "./NewsFeed";
 import PlayerDetail from "./PlayerDetail";
@@ -29,6 +29,8 @@ interface SidePanelProps {
   players: Record<string, Player>;
   // Events for feed
   events?: GameEvent[];
+  // Narrative
+  narrative?: TurnNarrative | null;
   // Mobile
   mobileOpen: boolean;
   onMobileClose: () => void;
@@ -51,6 +53,7 @@ export function SidePanel({
   agentCounts,
   players,
   events = [],
+  narrative,
   mobileOpen,
   onMobileClose,
   onMobileToggle,
@@ -194,6 +197,7 @@ export function SidePanel({
             events={events}
             players={players}
             territories={gameState.map.territories}
+            narrative={narrative}
           />
         )}
       </div>

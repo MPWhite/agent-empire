@@ -29,6 +29,7 @@ export default function Home() {
     sendMessage,
     onHistoryMeta,
     onTurnSnapshot,
+    narrative,
   } = useGameSocket();
 
   const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
@@ -259,6 +260,7 @@ export default function Home() {
           agentCounts={gameState.agentCounts ?? {}}
           players={gameState.players}
           events={events}
+          narrative={narrative}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
           onMobileToggle={() => setMobileOpen(true)}
