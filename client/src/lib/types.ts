@@ -273,9 +273,32 @@ export type GameEvent =
   | ResourceProductionEvent
   | ShortageEvent;
 
+// ── Narrative Types ──
+
+export interface TurnNarrative {
+  contextLines: Array<{
+    eventIndex: number;
+    context: string;
+  }>;
+  commsHighlights: CommsHighlight[];
+}
+
+export interface CommsHighlight {
+  teamId: string;
+  headline: string;
+  quotes: Array<{
+    agentName: string;
+    teamId: string;
+    text: string;
+  }>;
+  context: string;
+  timestamp: number;
+}
+
 export interface SerializedTurnResult {
   state: SerializedGameState;
   events: GameEvent[];
+  narrative?: TurnNarrative;
 }
 
 // Analyst reports (LLM-generated)
@@ -312,6 +335,7 @@ export interface HistoryMetaMessage {
   totalTurns: number;
   majorEvents: MajorEvent[];
   playerNames: Record<string, { name: string; color: string }>;
+  currentSituation?: string;
 }
 
 export interface TurnSnapshotMessage {

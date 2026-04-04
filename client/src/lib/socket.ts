@@ -10,6 +10,7 @@ import type {
   TurnPhase,
   HistoryMetaMessage,
   TurnSnapshotMessage,
+  TurnNarrative,
 } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001/ws";
@@ -25,6 +26,7 @@ export interface GameConnection {
   // Current turn phase
   turnPhase: TurnPhase | null;
   phaseEndsAt: string | null;
+  narrative: TurnNarrative | null;
   // Actions
   newGame: () => void;
   sendMessage: (data: unknown) => void;
@@ -42,6 +44,7 @@ export function useGameSocket(): GameConnection {
   const [teamProposals, setTeamProposals] = useState<Record<string, Proposal[]>>({});
   const [turnPhase, setTurnPhase] = useState<TurnPhase | null>(null);
   const [phaseEndsAt, setPhaseEndsAt] = useState<string | null>(null);
+  const [narrative, setNarrative] = useState<TurnNarrative | null>(null);
 
   const historyMetaCallback = useRef<((msg: HistoryMetaMessage) => void) | null>(null);
   const turnSnapshotCallback = useRef<((msg: TurnSnapshotMessage) => void) | null>(null);
@@ -68,6 +71,9 @@ export function useGameSocket(): GameConnection {
           setEvents((prev) => [...prev, ...msg.result.events].slice(-500));
           // Clear proposals on turn resolution
           setTeamProposals({});
+          if (msg.result.narrative) {
+            setNarrative(msg.result.narrative);
+          }
           break;
         case "chat_message":
           setTeamChats((prev) => {
@@ -133,6 +139,7 @@ export function useGameSocket(): GameConnection {
     teamProposals,
     turnPhase,
     phaseEndsAt,
+    narrative,
     newGame,
     sendMessage,
     onHistoryMeta,
