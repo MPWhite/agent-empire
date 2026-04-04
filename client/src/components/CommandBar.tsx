@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { TurnPhase } from "../lib/types";
 
 const PHASE_LABELS: Record<TurnPhase, string> = {
@@ -87,6 +87,8 @@ export function CommandBar({
 
   const activePhase = turnPhase ?? "observe";
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <header className="flex items-center justify-between px-3 md:px-4 h-10 border-b border-zinc-800 bg-zinc-950 shrink-0">
       {/* Left: Brand + Turn + Phase pipeline */}
@@ -146,36 +148,32 @@ export function CommandBar({
         )}
       </div>
 
-      {/* Right: Agents + Connection + Actions */}
-      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+      {/* Right: Agents + Connection + Actions (desktop) */}
+      <div className="hidden md:flex items-center gap-2 md:gap-3 shrink-0">
         {hasTeamData && (
           <>
-            <div className="hidden md:flex items-center gap-1.5 text-xs font-mono text-zinc-500" title="Active agents">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-500" title="Active agents">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {totalAgents}
             </div>
-            <div className="hidden md:block w-px h-4 bg-zinc-800" />
+            <div className="w-px h-4 bg-zinc-800" />
           </>
         )}
         <div className="flex items-center gap-1.5">
           <div className={`w-1.5 h-1.5 ${connected ? "bg-emerald-500" : "bg-red-500"}`} />
-          <span className="hidden md:inline text-xs font-mono text-zinc-600 uppercase">
+          <span className="text-xs font-mono text-zinc-600 uppercase">
             {connected ? "Live" : "Off"}
           </span>
         </div>
-        <div className="hidden md:block w-px h-4 bg-zinc-800" />
+        <div className="w-px h-4 bg-zinc-800" />
         <a
           href="https://github.com/MPWhite/agent-empire"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:block text-zinc-600 hover:text-zinc-300 transition-colors"
+          className="text-zinc-600 hover:text-zinc-300 transition-colors"
           title="GitHub"
         >
-          <svg
-            viewBox="0 0 16 16"
-            fill="currentColor"
-            className="w-4 h-4"
-          >
+          <svg viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
           </svg>
         </a>
@@ -183,29 +181,25 @@ export function CommandBar({
           href="https://x.com/ttamslam"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:block text-zinc-600 hover:text-zinc-300 transition-colors"
+          className="text-zinc-600 hover:text-zinc-300 transition-colors"
           title="@ttamslam on X"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="w-4 h-4"
-          >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
           </svg>
         </a>
-        <div className="hidden md:block w-px h-4 bg-zinc-800" />
+        <div className="w-px h-4 bg-zinc-800" />
         {hasRecapData && (
           <button
             onClick={onRecap}
-            className="hidden md:block text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
+            className="text-xs font-mono px-2 py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
           >
             RECAP
           </button>
         )}
         <button
           onClick={onToggleHistory}
-          className={`text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border transition-colors ${
+          className={`text-xs font-mono px-2 py-1 border transition-colors ${
             historyActive
               ? "text-amber-400 border-amber-800 hover:border-amber-700"
               : "text-zinc-600 hover:text-zinc-400 border-zinc-800 hover:border-zinc-700"
@@ -215,12 +209,114 @@ export function CommandBar({
         </button>
         <button
           onClick={onWhatIsThis}
-          className="text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
+          className="text-xs font-mono px-2 py-1 border border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
           title="What is this?"
         >
           ?
         </button>
       </div>
+
+      {/* Right: Mobile menu */}
+      <MobileMenu
+        connected={connected}
+        historyActive={historyActive}
+        onToggleHistory={onToggleHistory}
+        onWhatIsThis={onWhatIsThis}
+        onRecap={onRecap}
+        hasRecapData={hasRecapData}
+      />
     </header>
+  );
+}
+
+function MobileMenu({
+  connected,
+  historyActive,
+  onToggleHistory,
+  onWhatIsThis,
+  onRecap,
+  hasRecapData,
+}: {
+  connected: boolean;
+  historyActive: boolean;
+  onToggleHistory: () => void;
+  onWhatIsThis: () => void;
+  onRecap?: () => void;
+  hasRecapData?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="md:hidden flex items-center gap-2 shrink-0" ref={menuRef}>
+      {/* Connection indicator */}
+      <div className={`w-1.5 h-1.5 ${connected ? "bg-emerald-500" : "bg-red-500"}`} />
+
+      {/* Hamburger */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex flex-col gap-[3px] p-1.5 -mr-1"
+      >
+        <div className={`w-3.5 h-px bg-zinc-400 transition-transform ${open ? "rotate-45 translate-y-[2.5px]" : ""}`} />
+        <div className={`w-3.5 h-px bg-zinc-400 transition-opacity ${open ? "opacity-0" : ""}`} />
+        <div className={`w-3.5 h-px bg-zinc-400 transition-transform ${open ? "-rotate-45 -translate-y-[2.5px]" : ""}`} />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute top-10 right-0 z-40 w-48 bg-zinc-950 border border-zinc-800 shadow-xl">
+          <button
+            onClick={() => { onWhatIsThis(); setOpen(false); }}
+            className="w-full px-4 py-2.5 text-left text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors border-b border-zinc-800/50"
+          >
+            What is this?
+          </button>
+          {hasRecapData && (
+            <button
+              onClick={() => { onRecap?.(); setOpen(false); }}
+              className="w-full px-4 py-2.5 text-left text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors border-b border-zinc-800/50"
+            >
+              Recap
+            </button>
+          )}
+          <button
+            onClick={() => { onToggleHistory(); setOpen(false); }}
+            className={`w-full px-4 py-2.5 text-left text-xs font-mono hover:bg-zinc-900 transition-colors border-b border-zinc-800/50 ${
+              historyActive ? "text-amber-400" : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {historyActive ? "Close History" : "History"}
+          </button>
+          <a
+            href="https://github.com/MPWhite/agent-empire"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-4 py-2.5 text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors border-b border-zinc-800/50"
+          >
+            GitHub
+          </a>
+          <a
+            href="https://x.com/ttamslam"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-4 py-2.5 text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
+          >
+            @ttamslam on X
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
