@@ -27,7 +27,6 @@ export interface GameConnection {
   turnPhase: TurnPhase | null;
   phaseEndsAt: string | null;
   narrative: TurnNarrative | null;
-  initialTurnHistory: TurnHistoryMessage['turns'] | null;
   // Actions
   newGame: () => void;
   sendMessage: (data: unknown) => void;
