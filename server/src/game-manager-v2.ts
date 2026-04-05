@@ -304,6 +304,14 @@ export class GameManagerV2 {
     return this.turnActive;
   }
 
+  getRecentEvents(): typeof this.recentEvents {
+    return this.recentEvents;
+  }
+
+  getTurnHistory(): typeof this.history.turns {
+    return this.history.turns;
+  }
+
   // ── WebSocket (spectators) ──
 
   handleSpectatorConnection(ws: WebSocket): void {
@@ -318,14 +326,6 @@ export class GameManagerV2 {
           state: this.getPublicState(),
           events: this.recentEvents,
         },
-      });
-    }
-
-    // Send turn history so Territory Control chart populates immediately
-    if (this.history.turns.length > 0) {
-      this.send(ws, {
-        type: 'turn_history',
-        turns: this.history.turns,
       });
     }
 

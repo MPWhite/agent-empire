@@ -77,11 +77,6 @@ export interface TurnSnapshotMessage {
   snapshot: TurnSnapshot;
 }
 
-export interface TurnHistoryMessage {
-  type: 'turn_history';
-  turns: TurnSnapshot[];
-}
-
 export type ServerMessage =
   | GameStateMessage
   | TurnResultMessage
@@ -89,8 +84,7 @@ export type ServerMessage =
   | PlayerTurnEndedMessage
   | ErrorMessage
   | HistoryMetaMessage
-  | TurnSnapshotMessage
-  | TurnHistoryMessage;
+  | TurnSnapshotMessage;
 
 // ── Serialization helpers ──
 

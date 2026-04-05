@@ -10,7 +10,6 @@ import type {
   TurnPhase,
   HistoryMetaMessage,
   TurnSnapshotMessage,
-  TurnHistoryMessage,
   TurnNarrative,
 } from "./types";
 
@@ -36,18 +35,17 @@ export interface GameConnection {
   onTurnSnapshot: (callback: ((msg: TurnSnapshotMessage) => void) | null) => void;
 }
 
-export function useGameSocket(): GameConnection {
+export function useGameSocket(initialEvents: GameEvent[] = []): GameConnection {
   const wsRef = useRef<WebSocket | null>(null);
 
   const [connected, setConnected] = useState(false);
   const [gameState, setGameState] = useState<SerializedGameState | null>(null);
-  const [events, setEvents] = useState<GameEvent[]>([]);
+  const [events, setEvents] = useState<GameEvent[]>(initialEvents);
   const [teamChats, setTeamChats] = useState<Record<string, ChatMessage[]>>({});
   const [teamProposals, setTeamProposals] = useState<Record<string, Proposal[]>>({});
   const [turnPhase, setTurnPhase] = useState<TurnPhase | null>(null);
   const [phaseEndsAt, setPhaseEndsAt] = useState<string | null>(null);
   const [narrative, setNarrative] = useState<TurnNarrative | null>(null);
-  const [initialTurnHistory, setInitialTurnHistory] = useState<TurnHistoryMessage['turns'] | null>(null);
 
   const historyMetaCallback = useRef<((msg: HistoryMetaMessage) => void) | null>(null);
   const turnSnapshotCallback = useRef<((msg: TurnSnapshotMessage) => void) | null>(null);
@@ -102,9 +100,6 @@ export function useGameSocket(): GameConnection {
         case "turn_snapshot":
           turnSnapshotCallback.current?.(msg);
           break;
-        case "turn_history":
-          setInitialTurnHistory(msg.turns);
-          break;
         case "error":
           console.error("Server error:", msg.message);
           break;
@@ -146,7 +141,6 @@ export function useGameSocket(): GameConnection {
     turnPhase,
     phaseEndsAt,
     narrative,
-    initialTurnHistory,
     newGame,
     sendMessage,
     onHistoryMeta,

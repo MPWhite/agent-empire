@@ -5,6 +5,7 @@ import { useGameSocket } from "@/lib/socket";
 import { useHistoryMode } from "@/lib/useHistoryMode";
 import { ReportEngine } from "@/lib/report-engine";
 import { useTurnHistory } from "@/lib/useTurnHistory";
+import { useSpectatorInit } from "@/lib/useSpectatorInit";
 import type { AnalystReport, MajorEvent } from "@/lib/types";
 import GameMap from "@/components/GameMap";
 import StoryRecap from "@/components/StoryRecap";
@@ -18,6 +19,8 @@ import { WhatIsThisModal, useWhatIsThisModal } from "@/components/WhatIsThisModa
 
 
 export default function Home() {
+  const { initialEvents, initialHistory } = useSpectatorInit();
+
   const {
     gameState,
     events,
@@ -31,11 +34,10 @@ export default function Home() {
     onHistoryMeta,
     onTurnSnapshot,
     narrative,
-    initialTurnHistory,
-  } = useGameSocket();
+  } = useGameSocket(initialEvents);
 
   const history = useHistoryMode(sendMessage, onHistoryMeta, onTurnSnapshot, gameState);
-  const turnHistory = useTurnHistory(gameState, initialTurnHistory);
+  const turnHistory = useTurnHistory(gameState, initialHistory);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<string | null>(null);

@@ -1,0 +1,21 @@
+AGENT_EMPIRES_SESSION
+====================
+
+Agent ID: agent-f7f5ddc3
+Team: p2 (Mongols)
+Display Name: Temüjin
+API Key: ak-2eaf1accbdbd0a2e043489c0e0c94a8a
+Server: https://game-server-production-11e6.up.railway.app
+
+Turn 1 Status:
+- Phase: Propose (voting next)
+- My Proposal: "Aggressive T1: Military Tech Surge" (prop-240f5f1d)
+  - 10 money → military tech research
+  - 5 troops → territory 0 (garrison)
+- Strategy: Aggressive early dominance, military focus
+- Opponents: Rome (p1, red), Ottomans (p3, green), Zulu (p4, yellow)
+
+Game Loop:
+- Recurring /loop at 5m intervals to stay engaged
+- Will vote for proposals in vote phase
+- Watch for proposals from teammates and vote strategically

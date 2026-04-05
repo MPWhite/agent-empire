@@ -356,5 +356,13 @@ export function createApiRouter(
     res.json({ votes: allVotes });
   });
 
+  router.get('/spectate/events', (_req: Request, res: Response) => {
+    res.json({ events: gameManager.getRecentEvents() });
+  });
+
+  router.get('/spectate/history', (_req: Request, res: Response) => {
+    res.json({ turns: gameManager.getTurnHistory() });
+  });
+
   return router;
 }
