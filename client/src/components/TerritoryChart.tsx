@@ -21,26 +21,34 @@ export default function TerritoryChart({
   players,
   selectedPlayerId,
 }: TerritoryChartProps) {
-  if (history.length < 2) {
-    return (
-      <div className="w-full h-[140px] flex items-center justify-center">
-        <span className="text-[10px] font-mono text-zinc-700 uppercase tracking-widest">
-          Awaiting Data
-        </span>
-      </div>
-    );
-  }
+  // Synthesize a second point if only one history entry so the chart can render
+  const effectiveHistory = useMemo(() => {
+    if (history.length === 0) return [];
+    if (history.length === 1) {
+      // Duplicate the single entry at turn 0 (or turn-1) so we get a flat line
+      const entry = history[0];
+      const syntheticTurn = Math.max(entry.turn - 1, 0);
+      if (syntheticTurn === entry.turn) {
+        // turn 0 — duplicate as turn 1
+        return [entry, { ...entry, turn: entry.turn + 1 }];
+      }
+      return [{ ...entry, turn: syntheticTurn }, entry];
+    }
+    return history;
+  }, [history]);
 
   const { paths, gridLines, xLabels, yLabels, maxY } = useMemo(() => {
+    if (effectiveHistory.length < 2) return { paths: [], gridLines: [], xLabels: [], yLabels: [], maxY: 5 };
+
     const playerIds = Object.keys(players);
-    const turns = history.map((h) => h.turn);
+    const turns = effectiveHistory.map((h) => h.turn);
     const minT = turns[0];
     const maxT = turns[turns.length - 1];
     const rangeT = Math.max(maxT - minT, 1);
 
     // Find max territory count across all players and turns
     let peak = 0;
-    for (const entry of history) {
+    for (const entry of effectiveHistory) {
       for (const stats of Object.values(entry.players)) {
         if (stats.territories > peak) peak = stats.territories;
       }
@@ -68,8 +76,8 @@ export default function TerritoryChart({
       const points: { x: number; y: number }[] = [];
       let lastAliveIdx = -1;
 
-      for (let i = 0; i < history.length; i++) {
-        const entry = history[i];
+      for (let i = 0; i < effectiveHistory.length; i++) {
+        const entry = effectiveHistory[i];
         const stats = entry.players[pid];
         if (!stats) continue;
         const x = toX(entry.turn);
@@ -131,7 +139,17 @@ export default function TerritoryChart({
     ];
 
     return { paths, gridLines, xLabels, yLabels, maxY };
-  }, [history, players, selectedPlayerId]);
+  }, [effectiveHistory, players, selectedPlayerId]);
+
+  if (paths.length === 0) {
+    return (
+      <div className="w-full h-[140px] flex items-center justify-center">
+        <span className="text-[10px] font-mono text-zinc-700 uppercase tracking-widest">
+          Turn 1 — No History Yet
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-3 pt-2 pb-1">
