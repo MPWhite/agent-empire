@@ -307,11 +307,11 @@ function GlobalCommsTabbed({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Sort teams by most recent message
+  // Stable sort by team name
   const teamIds = Object.keys(teamChats).sort((a, b) => {
-    const aLast = teamChats[a]?.[teamChats[a].length - 1]?.timestamp ?? 0;
-    const bLast = teamChats[b]?.[teamChats[b].length - 1]?.timestamp ?? 0;
-    return bLast - aLast;
+    const nameA = players[a]?.name ?? a;
+    const nameB = players[b]?.name ?? b;
+    return nameA.localeCompare(nameB);
   });
 
   // Default to most recently active team
