@@ -418,6 +418,8 @@ export class GameManagerV2 {
     if (this.phaseTimer) clearTimeout(this.phaseTimer);
     this.clearPauseChecker();
     this.turnActive = false;
+    this.currentPhaseIndex = 0;
+    this.recentEvents = [];
     this.state = this.createFreshGame();
     this.agentManager.clearAllAgents();
     this.agentManager.initTeams(this.state.players);

@@ -259,8 +259,6 @@ export class AgentManager {
     this.agents.clear();
     this.apiKeyIndex.clear();
     this.usedNames.clear();
-    for (const team of this.teams.values()) {
-      team.agents.clear();
-    }
+    this.teams.clear();
   }
 }
