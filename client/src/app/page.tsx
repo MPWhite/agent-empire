@@ -67,7 +67,7 @@ export default function Home() {
     const turnNumber = gameState.turnNumber - 1;
 
     const trigger = reportEngineRef.current.addTurnEvents(newEvents, gameState, turnNumber);
-    setPendingTurns(turnNumber % 10);
+    setPendingTurns(turnNumber % 3);
 
     if (!trigger) return;
 

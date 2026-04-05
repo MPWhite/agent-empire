@@ -42,7 +42,7 @@ export default function NewsFeed({
 
   // Filter out noisy events (resourceProduction, reinforcement)
   const significantEvents = events.filter(
-    (e) => e.type !== 'resourceProduction' && e.type !== 'reinforcement'
+    (e) => e.type !== 'resourceProduction'
   );
 
   // Add events with optional context lines
@@ -93,7 +93,7 @@ export default function NewsFeed({
               AWAITING FIRST DISPATCH
             </div>
             <div className="text-zinc-700 text-xs font-mono">
-              First report in ~{Math.max(1, 10 - currentTurn)} turns
+              First report in ~{Math.max(1, 3 - currentTurn)} turns
             </div>
           </div>
         )}

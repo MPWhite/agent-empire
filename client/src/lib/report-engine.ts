@@ -13,7 +13,7 @@ export class ReportEngine {
   private dispatchInterval: number;
   private generating = false;
 
-  constructor(dispatchInterval = 10) {
+  constructor(dispatchInterval = 3) {
     this.dispatchInterval = dispatchInterval;
   }
 
