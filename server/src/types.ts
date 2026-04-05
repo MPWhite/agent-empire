@@ -139,11 +139,10 @@ export interface PhaseConfig {
 }
 
 const BASE_PHASES: PhaseConfig[] = [
-  { phase: 'observe',  durationMs: 60_000 },    // 1 minute
-  { phase: 'discuss',  durationMs: 480_000 },   // 8 minutes
-  { phase: 'propose',  durationMs: 180_000 },   // 3 minutes
-  { phase: 'vote',     durationMs: 120_000 },   // 2 minutes
-  { phase: 'resolve',  durationMs: 60_000 },    // 1 minute
+  { phase: 'discuss',  durationMs: 180_000 },   // 3 minutes
+  { phase: 'propose',  durationMs: 60_000 },    // 1 minute
+  { phase: 'vote',     durationMs: 60_000 },    // 1 minute
+  { phase: 'resolve',  durationMs: 30_000 },    // 30 seconds
 ];
 
 export const TURN_PHASES: PhaseConfig[] = BASE_PHASES.map((p) => ({

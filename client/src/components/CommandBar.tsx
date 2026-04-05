@@ -35,7 +35,7 @@ const PHASE_BG: Record<TurnPhase, string> = {
   resolve: "bg-red-900/50",
 };
 
-const PHASE_ORDER: TurnPhase[] = ["observe", "discuss", "propose", "vote", "resolve"];
+const PHASE_ORDER: TurnPhase[] = ["discuss", "propose", "vote", "resolve"];
 
 interface CommandBarProps {
   turnNumber: number;
