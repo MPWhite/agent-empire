@@ -61,6 +61,9 @@ export function SidePanel({
   const [detailTab, setDetailTab] = useState<DetailTab>("stats");
   const [unreadComms, setUnreadComms] = useState(0);
   const lastCommsCount = useRef(0);
+  const [globalTab, setGlobalTab] = useState<"comms" | "news">("comms");
+  const [unreadNews, setUnreadNews] = useState(0);
+  const lastReportsCount = useRef(reports.length);
 
   // Reset to stats tab when selecting a new player
   useEffect(() => {
@@ -89,6 +92,19 @@ export function SidePanel({
     }
   }, [selectedPlayerId]);
 
+  // Track unread news when viewing global comms tab
+  useEffect(() => {
+    if (selectedPlayerId) return; // only relevant for default view
+    const count = reports.length;
+    if (globalTab !== "news") {
+      const newReports = count - lastReportsCount.current;
+      if (newReports > 0) setUnreadNews((prev) => prev + newReports);
+    } else {
+      setUnreadNews(0);
+    }
+    lastReportsCount.current = count;
+  }, [reports.length, globalTab, selectedPlayerId]);
+
   const isGameOver = gameState.phase === "finished";
   const selectedPlayer = selectedPlayerId ? players[selectedPlayerId] : null;
 
@@ -100,6 +116,8 @@ export function SidePanel({
           gameState={gameState}
           onPlayerClick={onPlayerClick}
           selectedPlayerId={selectedPlayerId}
+          teamChats={teamChats}
+          agentCounts={agentCounts}
         />
       </div>
 
@@ -189,16 +207,42 @@ export function SidePanel({
             </button>
           </div>
         ) : (
-          /* Default: War Desk reports + event feed */
-          <NewsFeed
-            reports={reports}
-            currentTurn={gameState.turnNumber}
-            pendingTurns={pendingTurns}
-            events={events}
-            players={players}
-            territories={gameState.map.territories}
-            narrative={narrative}
-          />
+          /* Default: Global COMMS / NEWS tabs */
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {hasTeamData && (
+              <div className="flex border-b border-zinc-800 shrink-0">
+                <SubTab
+                  label="COMMS"
+                  active={globalTab === "comms"}
+                  onClick={() => { setGlobalTab("comms"); }}
+                />
+                <SubTab
+                  label="NEWS"
+                  active={globalTab === "news"}
+                  badge={unreadNews}
+                  onClick={() => { setGlobalTab("news"); setUnreadNews(0); }}
+                />
+              </div>
+            )}
+            {globalTab === "comms" && hasTeamData ? (
+              <GlobalCommsPanel
+                teamChats={teamChats}
+                players={players}
+                agentCounts={agentCounts}
+                onPlayerClick={onPlayerClick}
+              />
+            ) : (
+              <NewsFeed
+                reports={reports}
+                currentTurn={gameState.turnNumber}
+                pendingTurns={pendingTurns}
+                events={events}
+                players={players}
+                territories={gameState.map.territories}
+                narrative={narrative}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -247,6 +291,134 @@ export function SidePanel({
         )}
       </div>
     </>
+  );
+}
+
+/** Global comms panel — all teams grouped by team */
+function GlobalCommsPanel({
+  teamChats,
+  players,
+  agentCounts,
+  onPlayerClick,
+}: {
+  teamChats: Record<string, ChatMessage[]>;
+  players: Record<string, Player>;
+  agentCounts: Record<string, number>;
+  onPlayerClick: (playerId: string) => void;
+}) {
+  // Sort teams by most recent message
+  const teamIds = Object.keys(teamChats).sort((a, b) => {
+    const aLast = teamChats[a]?.[teamChats[a].length - 1]?.timestamp ?? 0;
+    const bLast = teamChats[b]?.[teamChats[b].length - 1]?.timestamp ?? 0;
+    return bLast - aLast;
+  });
+
+  // Most recently active team is expanded by default
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    teamIds.forEach((id, i) => { init[id] = i === 0; });
+    return init;
+  });
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (teamIds.length === 0) {
+    return (
+      <div className="flex items-center justify-center flex-1 text-zinc-600 text-xs font-mono">
+        NO COMMS INTERCEPTED
+      </div>
+    );
+  }
+
+  return (
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto panel-scroll">
+      {teamIds.map((teamId) => {
+        const player = players[teamId];
+        if (!player) return null;
+        const msgs = teamChats[teamId] ?? [];
+        const isExpanded = expanded[teamId] ?? false;
+        const count = agentCounts[teamId] ?? 0;
+
+        return (
+          <div key={teamId} className="border-b border-zinc-800/50">
+            {/* Team header — click to expand/collapse */}
+            <button
+              onClick={() => setExpanded((prev) => ({ ...prev, [teamId]: !prev[teamId] }))}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-900/50 transition-colors text-left"
+            >
+              <div
+                className="w-2 h-2 shrink-0 rounded-sm"
+                style={{ backgroundColor: player.color }}
+              />
+              <span
+                className="text-xs font-mono font-semibold uppercase tracking-wide flex-1"
+                style={{ color: player.color }}
+              >
+                {player.name}
+              </span>
+              {count > 0 && (
+                <span className="text-[10px] font-mono text-zinc-600">
+                  {count} agent{count !== 1 ? "s" : ""}
+                </span>
+              )}
+              <span className="text-zinc-600 text-[10px] font-mono">
+                {msgs.length > 0 ? `${msgs.length} msg${msgs.length !== 1 ? "s" : ""}` : ""}
+              </span>
+              <span className="text-zinc-600 text-xs">
+                {isExpanded ? "▾" : "▸"}
+              </span>
+            </button>
+
+            {/* Messages */}
+            {isExpanded && (
+              <div className="pb-1">
+                {msgs.length === 0 ? (
+                  <div className="px-3 py-2 text-[11px] text-zinc-600 font-mono">
+                    No comms intercepted
+                  </div>
+                ) : (
+                  msgs.slice(-20).map((msg) => {
+                    if (msg.agentId === "system") {
+                      return (
+                        <div key={msg.id} className="px-3 py-0.5 text-[11px] text-zinc-500 font-mono">
+                          {msg.text}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={msg.id} className="px-3 py-1 hover:bg-zinc-800/30">
+                        <div className="flex items-baseline gap-2">
+                          <span
+                            className="text-[11px] font-mono font-semibold shrink-0"
+                            style={{ color: player.color }}
+                          >
+                            {msg.agentName}
+                          </span>
+                          <span className="text-[10px] text-zinc-600 font-mono">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-zinc-400 mt-0.5 leading-snug break-words">
+                          {msg.text}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+                {msgs.length > 20 && (
+                  <button
+                    onClick={() => onPlayerClick(teamId)}
+                    className="px-3 py-1 text-[10px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    View all {msgs.length} messages →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
