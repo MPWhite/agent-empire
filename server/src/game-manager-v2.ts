@@ -410,6 +410,10 @@ export class GameManagerV2 {
     this.startTurnCycle();
   }
 
+  resetGame(): void {
+    this.handleNewGame();
+  }
+
   private handleNewGame(): void {
     if (this.phaseTimer) clearTimeout(this.phaseTimer);
     this.clearPauseChecker();

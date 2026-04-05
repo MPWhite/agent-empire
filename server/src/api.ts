@@ -286,6 +286,11 @@ export function createApiRouter(
     next();
   }
 
+  router.post('/game/reset', requireBotServiceAuth, (_req: Request, res: Response) => {
+    gameManager.resetGame();
+    res.json({ ok: true, message: 'Game reset to fresh state' });
+  });
+
   router.get('/bots/status', requireBotServiceAuth, (_req: Request, res: Response) => {
     res.json(agentManager.getBotStatus());
   });
