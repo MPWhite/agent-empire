@@ -32,8 +32,6 @@ export interface GameHistory {
 
 // ── File I/O ──
 
-const SAVE_PATH = process.env.SAVE_PATH ?? '.';
-
 function getHistoryPath(): string {
   const savePath = process.env.SAVE_PATH ?? './game-state.json';
   const dir = savePath.endsWith('.json') ? dirname(savePath) : savePath;

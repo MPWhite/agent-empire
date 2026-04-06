@@ -148,7 +148,7 @@ export default function Home() {
         setRecapData({
           majorEvents: msg.majorEvents,
           playerNames: msg.playerNames,
-          currentSituation: (msg as any).currentSituation,
+          currentSituation: msg.currentSituation,
         });
 
         const dismissed = localStorage.getItem("agent-empires-recap-dismissed");
