@@ -62,9 +62,14 @@ function summarizeEvents(events: MajorEvent[], playerNames: Record<string, { nam
     if (skippedWars.length > 0 && includedWars.length > 0) {
       const lastWar = includedWars[includedWars.length - 1];
       const allWarPlayers = new Set([...lastWar.playerIds, ...skippedWars.flatMap(w => w.playerIds)]);
-      lastWar.label = `${wars.length} major conflicts`;
-      lastWar.summary = lastWar.summary || `Multiple empires clashed across the map.`;
-      lastWar.playerIds = [...allWarPlayers];
+      const merged: MajorEvent = {
+        ...lastWar,
+        label: `${wars.length} major conflicts`,
+        summary: lastWar.summary || `Multiple empires clashed across the map.`,
+        playerIds: [...allWarPlayers],
+      };
+      const idx = picked.indexOf(lastWar);
+      if (idx !== -1) picked[idx] = merged;
     }
   }
 
