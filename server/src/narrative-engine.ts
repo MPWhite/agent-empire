@@ -129,7 +129,7 @@ export async function generateTurnNarrative(
 
   try {
     const result = await generateText({
-      model: anthropic('claude-haiku-4.5'),
+      model: anthropic('claude-haiku-4-5'),
       system: SYSTEM,
       prompt: buildPrompt(events, chats, state, recentEvents),
       output: Output.object({ schema: narrativeSchema }),
